@@ -46,7 +46,7 @@ export function SignIn() {
   };
 
   return (
-    <AuthLayout title="Bem-vindo de volta">
+    <AuthLayout title="AmericanaFood">
       <form onSubmit={handleSignIn} className="space-y-6">
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
