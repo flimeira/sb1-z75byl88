@@ -53,7 +53,6 @@ export function Dashboard() {
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [typeMap, setTypeMap] = useState<Record<string, string>>({});
   const [restaurantDistances, setRestaurantDistances] = useState<Record<string, number | null>>({});
-  const [favoriteRestaurants, setFavoriteRestaurants] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user) {
@@ -302,18 +301,6 @@ export function Dashboard() {
     
     return matchesSearch && matchesType;
   });
-
-  const toggleFavorite = (restaurantId: string) => {
-    setFavoriteRestaurants(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(restaurantId)) {
-        newFavorites.delete(restaurantId);
-      } else {
-        newFavorites.add(restaurantId);
-      }
-      return newFavorites;
-    });
-  };
 
   if (loading) {
     return (
@@ -601,12 +588,16 @@ export function Dashboard() {
                         className="w-full h-48 object-cover"
                       />
                       <button
-                        onClick={() => toggleFavorite(restaurant.id)}
+                        onClick={() => toggleFavorite({
+                          id: restaurant.id,
+                          name: restaurant.nome,
+                          image: restaurant.imagem
+                        })}
                         className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
                       >
                         <Heart
                           size={20}
-                          className={favoriteRestaurants.has(restaurant.id) ? 'text-red-500 fill-current' : 'text-gray-500'}
+                          className={isFavorite(restaurant.id) ? 'text-red-500 fill-current' : 'text-gray-500'}
                         />
                       </button>
                     </div>
