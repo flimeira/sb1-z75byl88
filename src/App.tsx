@@ -12,7 +12,9 @@ import { Notifications } from './pages/Notifications';
 import { SetupGuide } from './components/SetupGuide';
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { FavoriteRestaurantsProvider } from './contexts/FavoriteRestaurantsContext';
 import { PrivateRoute } from './components/PrivateRoute';
+import { Sidebar } from './components/Sidebar';
 
 export default function App() {
   const isSupabaseConfigured = 
@@ -27,18 +29,25 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <NotificationProvider>
-          <Routes>
-            <Route path="/" element={<Navigate to="/signin" replace />} />
-            <Route path="/signin" element={<SignIn />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/update-password" element={<UpdatePassword />} />
-            <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-            <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
-            <Route path="/feedback" element={<PrivateRoute><Feedback /></PrivateRoute>} />
-            <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
-          </Routes>
+          <FavoriteRestaurantsProvider>
+            <div className="flex h-screen bg-gray-100">
+              <Sidebar />
+              <main className="flex-1 overflow-y-auto">
+                <Routes>
+                  <Route path="/" element={<Navigate to="/signin" replace />} />
+                  <Route path="/signin" element={<SignIn />} />
+                  <Route path="/signup" element={<SignUp />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/update-password" element={<UpdatePassword />} />
+                  <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+                  <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+                  <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
+                  <Route path="/feedback" element={<PrivateRoute><Feedback /></PrivateRoute>} />
+                  <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
+                </Routes>
+              </main>
+            </div>
+          </FavoriteRestaurantsProvider>
         </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>
