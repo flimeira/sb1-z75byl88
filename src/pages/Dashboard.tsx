@@ -537,28 +537,39 @@ export function Dashboard() {
           </div>
         ) : (
           <div className="px-4 sm:px-0">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-              <div className="flex-1 max-w-md w-full mb-4 md:mb-0">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    placeholder="Buscar restaurantes..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
+            <div className="mb-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar restaurantes..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               </div>
-              <div className="flex gap-2">
-                {restaurantTypes.map((type) => (
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between mb-6">
+              <div className="flex overflow-x-auto pb-2 mb-2 md:mb-0">
+                <button
+                  onClick={() => setSelectedType(null)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap mr-2 ${
+                    selectedType === null
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Todos
+                </button>
+                {restaurantTypes.map(type => (
                   <button
                     key={type.id}
-                    onClick={() => setSelectedType(selectedType === type.id ? null : type.id)}
-                    className={`px-4 py-2 rounded-lg ${
+                    onClick={() => setSelectedType(type.id)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap mr-2 ${
                       selectedType === type.id
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     {type.tipo}
@@ -568,51 +579,92 @@ export function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {restaurants
-                .filter((restaurant) => {
-                  const matchesSearch = restaurant.nome.toLowerCase().includes(searchTerm.toLowerCase());
-                  const matchesType = !selectedType || restaurant.idtipo === selectedType;
-                  return matchesSearch && matchesType;
-                })
-                .map((restaurant) => (
-                  <div
-                    key={restaurant.id}
-                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-                  >
-                    <div className="relative">
-                      <img
-                        src={restaurant.imagem}
-                        alt={restaurant.nome}
-                        className="w-full h-48 object-cover"
-                      />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold mb-2">{restaurant.nome}</h3>
-                      <div className="flex items-center text-gray-600 mb-2">
-                        <Star className="w-4 h-4 mr-1 text-yellow-400" />
-                        <span>{restaurant.rating}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600 mb-2">
-                        <Clock className="w-4 h-4 mr-1" />
-                        <span>{restaurant.deliveryTime} min</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span>
-                          {restaurantDistances[restaurant.id]
-                            ? `${restaurantDistances[restaurant.id].toFixed(1)} km`
-                            : 'Distância não disponível'}
-                        </span>
-                      </div>
-                    </div>
-                    <button
+              {filteredRestaurants.length > 0 ? (
+                filteredRestaurants.map(restaurant => {
+                  const distance = restaurantDistances[restaurant.id];
+                  const isInRange = userProfile && isWithinDeliveryRadius(restaurant, userProfile);
+                  
+                  return (
+                    <div
+                      key={restaurant.id}
                       onClick={() => handleRestaurantSelect(restaurant)}
-                      className="w-full bg-blue-600 text-white py-2 hover:bg-blue-700 transition-colors"
+                      className={`bg-white rounded-lg shadow-md overflow-hidden transition-all ${
+                        isInRange === false 
+                          ? 'opacity-60 cursor-not-allowed' 
+                          : 'cursor-pointer hover:shadow-lg'
+                      }`}
                     >
-                      Ver Cardápio
-                    </button>
-                  </div>
-                ))}
+                      <div className="relative h-48">
+                        <img
+                          src={restaurant.imagem}
+                          alt={restaurant.nome}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
+                          <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <h3 className="text-white text-lg font-semibold">{restaurant.nome}</h3>
+                            <div className="flex items-center text-white text-sm mt-1">
+                              <MapPin className="w-3 h-3 mr-1" />
+                              <span className="truncate">{restaurant.street}, {restaurant.number}</span>
+                            </div>
+                            <div className="flex items-center space-x-2 text-white text-sm mt-1">
+                              <div className="flex items-center">
+                                <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                                <span className="ml-1">{restaurant.rating}</span>
+                              </div>
+                              <span>•</span>
+                              <span>{restaurant.tipo}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex items-center justify-between text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <Clock className="w-4 h-4 mr-1" />
+                            <span>{restaurant.deliveryTime} min</span>
+                          </div>
+                          <div>
+                            {restaurant.delivery_fee === 0 ? (
+                              <span className="text-green-600 font-medium">Entrega Grátis</span>
+                            ) : (
+                              <span>Taxa: R$ {restaurant.delivery_fee.toFixed(2)}</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Delivery radius information */}
+                        <div className="mt-2 flex items-center justify-between text-sm">
+                          <div className="flex items-center">
+                            <MapPin className="w-4 h-4 mr-1 text-gray-500" />
+                            <span className="text-gray-500">Raio: {restaurant.delivery_radius}km</span>
+                          </div>
+                          
+                          {distance !== null && distance !== undefined && (
+                            <div className={`font-medium ${isInRange ? 'text-green-600' : 'text-red-500'}`}>
+                              {isInRange ? 'Entrega disponível' : 'Fora da área de entrega'}
+                              <span className="text-gray-500 font-normal ml-1">({distance.toFixed(1)}km)</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Warning banner for out of range restaurants */}
+                        {isInRange === false && (
+                          <div className="mt-2 bg-red-50 text-red-600 p-2 rounded-md text-xs text-center">
+                            Este restaurante não entrega no seu endereço
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900">Nenhum restaurante encontrado</h3>
+                  <p className="text-gray-500 mt-2">Tente ajustar seus filtros de busca.</p>
+                </div>
+              )}
             </div>
           </div>
         )}
