@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Star, Clock, ArrowLeft, Plus, Minus, Menu, ShoppingBag, MapPin, AlertCircle, Heart } from 'lucide-react';
+import { Search, Star, Clock, ArrowLeft, Plus, Minus, Menu, ShoppingBag, MapPin, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { CheckoutPage } from '../components/CheckoutPage';
 import { OrderConfirmationModal } from '../components/OrderConfirmationModal';
 import { Sidebar } from '../components/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
-import { useFavoriteRestaurants } from '../contexts/FavoriteRestaurantsContext';
 import { Restaurant } from '../types/restaurant';
 import { Profile } from '../types/profile';
 import { calculateRestaurantDistance, isWithinDeliveryRadius } from '../utils/distance';
@@ -35,7 +34,6 @@ interface RestaurantType {
 export function Dashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { isFavorite, toggleFavorite } = useFavoriteRestaurants();
   const [loading, setLoading] = useState(true);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
@@ -53,7 +51,6 @@ export function Dashboard() {
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [typeMap, setTypeMap] = useState<Record<string, string>>({});
   const [restaurantDistances, setRestaurantDistances] = useState<Record<string, number | null>>({});
-  const [favoriteRestaurants, setFavoriteRestaurants] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user) {
@@ -302,18 +299,6 @@ export function Dashboard() {
     
     return matchesSearch && matchesType;
   });
-
-  const toggleFavorite = (restaurantId: string) => {
-    setFavoriteRestaurants(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(restaurantId)) {
-        newFavorites.delete(restaurantId);
-      } else {
-        newFavorites.add(restaurantId);
-      }
-      return newFavorites;
-    });
-  };
 
   if (loading) {
     return (
@@ -600,15 +585,6 @@ export function Dashboard() {
                         alt={restaurant.nome}
                         className="w-full h-48 object-cover"
                       />
-                      <button
-                        onClick={() => toggleFavorite(restaurant.id)}
-                        className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
-                      >
-                        <Heart
-                          size={20}
-                          className={favoriteRestaurants.has(restaurant.id) ? 'text-red-500 fill-current' : 'text-gray-500'}
-                        />
-                      </button>
                     </div>
                     <div className="p-4">
                       <h3 className="text-lg font-semibold mb-2">{restaurant.nome}</h3>
