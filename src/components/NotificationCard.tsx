@@ -35,9 +35,11 @@ export function NotificationCard({ notification }: NotificationCardProps) {
             <button
               onClick={handleFavorite}
               className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Favoritar restaurante"
             >
               <Heart
-                className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`}
+                size={20}
+                className={`${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`}
               />
             </button>
           </div>
