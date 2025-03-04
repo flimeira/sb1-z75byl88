@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, User, ShoppingBag, Award, MessageSquare, LogOut, Bot } from 'lucide-react';
+import { X, User, ShoppingBag, Award, MessageSquare, LogOut, Bot, Bell } from 'lucide-react';
 import { AIChat } from './AIChat';
+import { NotificationIcon } from './NotificationIcon';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -56,6 +57,20 @@ export function Sidebar({ isOpen, onClose, userEmail, onSignOut }: SidebarProps)
             >
               <Bot className="w-5 h-5 mr-3 group-hover:text-blue-500" />
               <span>Assistente Virtual</span>
+            </button>
+
+            <button
+              onClick={() => {
+                navigate('/notifications');
+                onClose();
+              }}
+              className="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg group transition-colors"
+            >
+              <div className="relative mr-3">
+                <Bell className="w-5 h-5 group-hover:text-blue-500" />
+                <NotificationIcon />
+              </div>
+              <span>Notificações</span>
             </button>
 
             <button
