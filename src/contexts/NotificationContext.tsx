@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 import { Notification } from '../types/notification';
 
 interface NotificationContextType {
@@ -11,67 +13,116 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const sampleNotifications = [
-  {
-    restaurantId: "1",
-    restaurantName: "Restaurante Italiano",
-    restaurantImage: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&h=500&fit=crop",
-    title: "Novo Pedido Recebido",
-    content: "Seu pedido #123 foi recebido e está sendo preparado!"
-  },
-  {
-    restaurantId: "2",
-    restaurantName: "Pizzaria Express",
-    restaurantImage: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&h=500&fit=crop",
-    title: "Promoção Especial",
-    content: "Pizza grande com 30% de desconto hoje!"
-  },
-  {
-    restaurantId: "3",
-    restaurantName: "Sushi Master",
-    restaurantImage: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500&h=500&fit=crop",
-    title: "Pedido Entregue",
-    content: "Seu pedido #456 foi entregue com sucesso!"
-  }
-];
-
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  console.log('NotificationProvider mounted');
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { user } = useAuth();
 
   useEffect(() => {
-    console.log('Adding sample notifications');
-    // Add sample notifications when the component mounts
-    sampleNotifications.forEach(notification => {
-      addNotification(notification);
-    });
-  }, []);
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedNotifications = data.map(notification => ({
+        id: notification.id,
+        restaurantId: notification.restaurant_id,
+        restaurantName: notification.restaurant_name,
+        restaurantImage: notification.restaurant_image,
+        title: notification.title,
+        content: notification.content,
+        read: notification.read,
+        createdAt: notification.created_at,
+      }));
+
+      setNotifications(formattedNotifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  console.log('Current unread count:', unreadCount);
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(notification =>
-        notification.id === id ? { ...notification, read: true } : notification
-      )
-    );
+  const markAsRead = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setNotifications(prev =>
+        prev.map(notification =>
+          notification.id === id ? { ...notification, read: true } : notification
+        )
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notification => ({ ...notification, read: true }))
-    );
+  const markAllAsRead = async () => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setNotifications(prev =>
+        prev.map(notification => ({ ...notification, read: true }))
+      );
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
   };
 
-  const addNotification = (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: Math.random().toString(36).substr(2, 9),
-      read: false,
-      createdAt: new Date().toISOString(),
-    };
-    setNotifications(prev => [newNotification, ...prev]);
+  const addNotification = async (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert([
+          {
+            user_id: user?.id,
+            restaurant_id: notification.restaurantId,
+            restaurant_name: notification.restaurantName,
+            restaurant_image: notification.restaurantImage,
+            title: notification.title,
+            content: notification.content,
+            read: false,
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newNotification: Notification = {
+        id: data.id,
+        restaurantId: data.restaurant_id,
+        restaurantName: data.restaurant_name,
+        restaurantImage: data.restaurant_image,
+        title: data.title,
+        content: data.content,
+        read: data.read,
+        createdAt: data.created_at,
+      };
+
+      setNotifications(prev => [newNotification, ...prev]);
+    } catch (error) {
+      console.error('Error adding notification:', error);
+    }
   };
 
   return (
