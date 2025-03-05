@@ -177,7 +177,6 @@ export function Orders() {
         .from('order_reviews')
         .insert({
           order_id: selectedOrder.id,
-          restaurant_id: selectedOrder.restaurant.id,
           user_id: user.id,
           rating,
           comment
