@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { updateRestaurantRating } from '../utils/restaurantRating';
+import { addPoints } from '../utils/points';
 
 interface OrderItem {
   product: {
@@ -199,6 +200,24 @@ export function Orders() {
       setRating(0);
       setComment('');
       setSuccess('Avaliação enviada com sucesso!');
+
+      // Add points
+      const { data: configData } = await supabase
+        .from('points_config')
+        .select('points_per_review')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (configData) {
+        await addPoints(
+          user.id,
+          configData.points_per_review,
+          'review',
+          selectedOrder.id,
+          `Pontos por avaliar o pedido #${selectedOrder.id.slice(0, 8)}`
+        );
+      }
     } catch (error) {
       setError('Falha ao enviar avaliação. Por favor, tente novamente.');
       console.error('Error submitting review:', error);

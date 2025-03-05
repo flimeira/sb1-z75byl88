@@ -13,6 +13,7 @@ import { SetupGuide } from './components/SetupGuide';
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { PrivateRoute } from './components/PrivateRoute';
+import { Points } from './pages/Points';
 
 export default function App() {
   const isSupabaseConfigured = 
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
             <Route path="/feedback" element={<PrivateRoute><Feedback /></PrivateRoute>} />
             <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
+            <Route path="/points" element={<PrivateRoute><Points /></PrivateRoute>} />
           </Routes>
         </NotificationProvider>
       </AuthProvider>

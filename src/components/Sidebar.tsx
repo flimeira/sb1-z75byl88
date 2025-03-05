@@ -97,7 +97,7 @@ export function Sidebar({ isOpen, onClose, userEmail, onSignOut }: SidebarProps)
 
             <button
               onClick={() => {
-                navigate('/rewards');
+                navigate('/points');
                 onClose();
               }}
               className="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg group transition-colors"
