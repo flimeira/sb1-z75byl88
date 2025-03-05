@@ -131,7 +131,8 @@ export function Profile() {
     setSuccess(null);
 
     try {
-      const { error } = await supabase
+      // Primeiro atualiza o perfil
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           ...profile,
@@ -139,11 +140,33 @@ export function Profile() {
         })
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Depois atualiza as coordenadas
+      if (profile.street && profile.number && profile.city && profile.state) {
+        const coordinates = await geocodeAddress(profile);
+        
+        if (coordinates) {
+          const { error: coordinatesError } = await supabase
+            .from('profiles')
+            .update({
+              latitude: coordinates.latitude,
+              longitude: coordinates.longitude,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', user.id);
+
+          if (coordinatesError) throw coordinatesError;
+          
+          setProfile(prev => prev ? {
+            ...prev,
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude
+          } : null);
+        }
+      }
+
       setSuccess('Perfil atualizado com sucesso!');
-      
-      // Update coordinates after address change
-      await updateCoordinates();
     } catch (error) {
       setError('Falha ao atualizar o perfil. Por favor, tente novamente.');
       console.error('Error updating profile:', error);
