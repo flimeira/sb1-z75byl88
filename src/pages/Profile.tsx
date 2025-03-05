@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { User, Lock, Save, ArrowLeft, MapPin } from 'lucide-react';
 import { geocodeAddress } from '../utils/geocoding';
+import { fetchAddressFromCep } from '../utils/cep';
 
 interface Profile {
   id: string;
@@ -34,6 +35,7 @@ export function Profile() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [updatingCoordinates, setUpdatingCoordinates] = useState(false);
+  const [loadingCep, setLoadingCep] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -207,6 +209,34 @@ export function Profile() {
       console.error('Error updating password:', error);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cep = e.target.value;
+    setProfile(prev => prev ? { ...prev, postal_code: cep } : null);
+
+    // Remove caracteres não numéricos para verificar o comprimento
+    const cleanCep = cep.replace(/\D/g, '');
+    
+    if (cleanCep.length === 8) {
+      setLoadingCep(true);
+      try {
+        const address = await fetchAddressFromCep(cep);
+        if (address) {
+          setProfile(prev => prev ? {
+            ...prev,
+            street: address.street,
+            neighborhood: address.neighborhood,
+            city: address.city,
+            state: address.state
+          } : null);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar endereço:', error);
+      } finally {
+        setLoadingCep(false);
+      }
     }
   };
 
@@ -425,13 +455,22 @@ export function Profile() {
                       <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
                         CEP
                       </label>
-                      <input
-                        type="text"
-                        id="postalCode"
-                        value={profile?.postal_code || ''}
-                        onChange={(e) => setProfile(prev => prev ? { ...prev, postal_code: e.target.value } : null)}
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
+                      <div className="mt-1 relative rounded-md shadow-sm">
+                        <input
+                          type="text"
+                          id="postalCode"
+                          value={profile?.postal_code || ''}
+                          onChange={handleCepChange}
+                          placeholder="00000-000"
+                          maxLength={9}
+                          className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        {loadingCep && (
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
