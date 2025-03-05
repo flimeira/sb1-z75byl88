@@ -28,16 +28,31 @@ export async function updateRestaurantRating(restaurantId: string) {
 
     console.log('Current restaurant data:', currentRestaurant);
 
-    // Buscar todas as avaliações dos pedidos do restaurante
+    // Primeiro, buscar todos os pedidos do restaurante
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('restaurant_id', restaurantId);
+
+    if (ordersError) {
+      console.error('Error fetching orders:', ordersError);
+      throw ordersError;
+    }
+
+    if (!orders || orders.length === 0) {
+      console.log('No orders found for this restaurant');
+      return;
+    }
+
+    // Extrair os IDs dos pedidos
+    const orderIds = orders.map(order => order.id);
+    console.log('Found order IDs:', orderIds);
+
+    // Agora buscar as avaliações desses pedidos
     const { data: reviews, error: reviewsError } = await supabase
       .from('order_reviews')
       .select('rating')
-      .in('order_id', (
-        supabase
-          .from('orders')
-          .select('id')
-          .eq('restaurant_id', restaurantId)
-      ))
+      .in('order_id', orderIds)
       .not('rating', 'is', null);
 
     if (reviewsError) {
