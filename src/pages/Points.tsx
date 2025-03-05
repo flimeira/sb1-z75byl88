@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Progress } from '../components/ui/progress';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ReferralCode } from '@/components/ReferralCode';
+import { ReferralCode } from '../components/ReferralCode';
 
 interface PointsConfig {
   points_expiration_days: number;
