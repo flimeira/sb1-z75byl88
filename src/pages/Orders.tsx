@@ -131,10 +131,13 @@ export function Orders() {
 
       // Process the data
       const processedOrders = ordersData.map(order => {
+        console.log('Processing order:', order.id, 'Review data:', order.review);
         // Extract the first review from the array if it exists
         const reviewData = order.review && Array.isArray(order.review) && order.review.length > 0 
           ? order.review[0] 
-          : null;
+          : order.review; // Se não for array, usa o objeto diretamente
+        
+        console.log('Processed review data:', reviewData);
         
         return {
           ...order,
@@ -142,7 +145,7 @@ export function Orders() {
         };
       });
 
-      console.log('Processed orders with reviews:', processedOrders);
+      console.log('Final processed orders:', processedOrders);
       setOrders(processedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -311,7 +314,7 @@ export function Orders() {
                               <Star
                                 key={star}
                                 className={`w-4 h-4 ${
-                                  star <= order.review!.rating
+                                  star <= order.review.rating
                                     ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300'
                                 }`}
@@ -383,7 +386,7 @@ export function Orders() {
                                 <Star
                                   key={star}
                                   className={`w-4 h-4 ${
-                                    star <= order.review!.rating
+                                    star <= order.review.rating
                                       ? 'text-yellow-400 fill-current'
                                       : 'text-gray-300'
                                   }`}
