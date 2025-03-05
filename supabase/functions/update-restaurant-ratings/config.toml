@@ -1,0 +1,7 @@
+[global]
+runtime = "deno"
+entrypoint = "index.ts"
+
+[global.environment]
+SUPABASE_URL = ""
+SUPABASE_SERVICE_ROLE_KEY = "" 

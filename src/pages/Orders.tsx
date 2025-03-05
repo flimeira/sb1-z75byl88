@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { updateRestaurantRating } from '../utils/restaurantRating';
 
 interface OrderItem {
   product: {
@@ -43,6 +44,7 @@ export function Orders() {
   const [hoveredRating, setHoveredRating] = useState(0);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -154,42 +156,40 @@ export function Orders() {
     }
   };
 
-  const handleReviewSubmit = async (orderId: string) => {
-    if (!supabase || !rating) {
-      setError('Por favor, selecione uma classificação');
-      return;
-    }
+  const handleReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrder || !supabase) return;
 
-    setReviewLoading(true);
+    setSaving(true);
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
-      // Use the RPC function to handle upsert
-      const { data, error } = await supabase.rpc('upsert_order_review', {
-        p_order_id: orderId,
-        p_user_id: user.id,
-        p_rating: rating,
-        p_comment: comment.trim() || null
-      });
+      const { error } = await supabase
+        .from('order_reviews')
+        .insert({
+          order_id: selectedOrder.id,
+          restaurant_id: selectedOrder.restaurant.id,
+          user_id: user?.id,
+          rating,
+          comment
+        });
 
       if (error) throw error;
-      
-      if (data && !data.success) {
-        throw new Error(data.error || 'Falha ao enviar avaliação');
-      }
 
-      await fetchOrders();
+      // Atualizar o rating do restaurante
+      await updateRestaurantRating(selectedOrder.restaurant.id);
+
+      // Atualizar a lista de pedidos
+      fetchOrders();
       setSelectedOrder(null);
       setRating(0);
       setComment('');
+      setSuccess('Avaliação enviada com sucesso!');
     } catch (error) {
+      setError('Falha ao enviar avaliação. Por favor, tente novamente.');
       console.error('Error submitting review:', error);
-      setError(error instanceof Error ? error.message : 'Falha ao enviar avaliação. Por favor, tente novamente.');
     } finally {
-      setReviewLoading(false);
+      setSaving(false);
     }
   };
 
@@ -458,7 +458,7 @@ export function Orders() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleReviewSubmit(order.id)}
+                              onClick={() => handleReview}
                               disabled={reviewLoading || !rating}
                               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                             >
