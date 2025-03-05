@@ -330,15 +330,21 @@ export function Dashboard() {
 
   const toggleFavorite = async (restaurantId: string) => {
     if (!supabase || !user) {
-      console.log('Supabase ou usuário não disponível');
+      console.log('Supabase ou usuário não disponível:', { supabase: !!supabase, user: !!user });
       return;
     }
 
     try {
       const isFavorite = favoriteRestaurants.has(restaurantId);
-      console.log('Toggling favorite:', { restaurantId, isFavorite, userId: user.id });
+      console.log('Iniciando toggle de favorito:', { 
+        restaurantId, 
+        isFavorite, 
+        userId: user.id,
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL 
+      });
       
       if (isFavorite) {
+        console.log('Tentando remover favorito...');
         const { error } = await supabase
           .from('favorite_restaurants')
           .delete()
@@ -346,7 +352,7 @@ export function Dashboard() {
           .eq('restaurant_id', restaurantId);
 
         if (error) {
-          console.error('Erro ao remover favorito:', error);
+          console.error('Erro detalhado ao remover favorito:', error);
           throw error;
         }
         
@@ -356,6 +362,7 @@ export function Dashboard() {
           return newFavorites;
         });
       } else {
+        console.log('Tentando adicionar favorito...');
         const { data, error } = await supabase
           .from('favorite_restaurants')
           .insert({
@@ -365,7 +372,7 @@ export function Dashboard() {
           .select();
 
         if (error) {
-          console.error('Erro ao adicionar favorito:', error);
+          console.error('Erro detalhado ao adicionar favorito:', error);
           throw error;
         }
         
@@ -378,7 +385,7 @@ export function Dashboard() {
         });
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      console.error('Erro completo ao togglar favorito:', error);
     }
   };
 
