@@ -38,13 +38,14 @@ export function Orders() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [hoveredRating, setHoveredRating] = useState(0);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,6 +55,14 @@ export function Orders() {
   const totalPages = Math.ceil(totalOrders / ordersPerPage);
 
   useEffect(() => {
+    const checkUser = async () => {
+      if (!supabase) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUser(user);
+      }
+    };
+    checkUser();
     fetchOrdersCount();
     fetchOrders();
   }, [currentPage]);
@@ -158,9 +167,9 @@ export function Orders() {
 
   const handleReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrder || !supabase) return;
+    if (!selectedOrder || !supabase || !user) return;
 
-    setSaving(true);
+    setReviewLoading(true);
     setError(null);
 
     try {
@@ -169,7 +178,7 @@ export function Orders() {
         .insert({
           order_id: selectedOrder.id,
           restaurant_id: selectedOrder.restaurant.id,
-          user_id: user?.id,
+          user_id: user.id,
           rating,
           comment
         });
@@ -189,7 +198,7 @@ export function Orders() {
       setError('Falha ao enviar avaliação. Por favor, tente novamente.');
       console.error('Error submitting review:', error);
     } finally {
-      setSaving(false);
+      setReviewLoading(false);
     }
   };
 
@@ -391,7 +400,7 @@ export function Orders() {
                         )}
                       </div>
                     ) : (
-                      selectedOrder === order.id ? (
+                      selectedOrder === order ? (
                         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                           {error && (
                             <div className="mb-4 text-sm text-red-600">
@@ -458,7 +467,7 @@ export function Orders() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleReview}
+                              onClick={handleReview}
                               disabled={reviewLoading || !rating}
                               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                             >
@@ -469,7 +478,7 @@ export function Orders() {
                       ) : (
                         <div className="mt-4">
                           <button
-                            onClick={() => setSelectedOrder(order.id)}
+                            onClick={() => setSelectedOrder(order)}
                             className="text-blue-600 hover:text-blue-700 text-sm font-medium focus:outline-none flex items-center"
                           >
                             <Star className="w-4 h-4 mr-1" />
