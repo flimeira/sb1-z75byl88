@@ -31,13 +31,13 @@ export async function updateRestaurantRating(restaurantId: string) {
     // Buscar todas as avaliações dos pedidos do restaurante
     const { data: reviews, error: reviewsError } = await supabase
       .from('order_reviews')
-      .select(`
-        rating,
-        order:orders!order_reviews_order_id_fkey (
-          restaurant_id
-        )
-      `)
-      .eq('order.restaurant_id', restaurantId)
+      .select('rating')
+      .in('order_id', (
+        supabase
+          .from('orders')
+          .select('id')
+          .eq('restaurant_id', restaurantId)
+      ))
       .not('rating', 'is', null);
 
     if (reviewsError) {
@@ -72,7 +72,7 @@ export async function updateRestaurantRating(restaurantId: string) {
 
     console.log('Calculated average:', average);
 
-    // Atualizar o rating do restaurante usando uma query mais direta
+    // Atualizar o rating do restaurante
     const { data: updateData, error: updateError } = await supabase
       .from('restaurants')
       .update({ rating: average })
