@@ -175,6 +175,9 @@ export function Orders() {
     setError(null);
 
     try {
+      console.log('Selected order:', selectedOrder);
+      console.log('Restaurant ID:', selectedOrder.restaurant.id);
+
       const { error } = await supabase
         .from('order_reviews')
         .insert({
@@ -187,6 +190,7 @@ export function Orders() {
       if (error) throw error;
 
       // Atualizar o rating do restaurante
+      console.log('Calling updateRestaurantRating with restaurant ID:', selectedOrder.restaurant.id);
       await updateRestaurantRating(selectedOrder.restaurant.id);
 
       // Atualizar a lista de pedidos
