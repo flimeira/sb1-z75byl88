@@ -307,21 +307,6 @@ export function Orders() {
                   <div className="ml-6 flex-1">
                     <div className="flex items-center justify-between">
                       <div>
-                        {/* Display star rating above order number if review exists */}
-                        {order.review && (
-                          <div className="flex mb-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`w-4 h-4 ${
-                                  star <= order.review.rating
-                                    ? 'text-yellow-400 fill-current'
-                                    : 'text-gray-300'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        )}
                         <h3 className="text-lg font-semibold text-gray-900">
                           Pedido #{order.order_number}
                         </h3>
