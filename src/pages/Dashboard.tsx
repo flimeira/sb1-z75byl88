@@ -330,7 +330,12 @@ export function Dashboard() {
 
   const toggleFavorite = async (restaurantId: string) => {
     if (!supabase || !user) {
-      console.log('Supabase ou usuário não disponível:', { supabase: !!supabase, user: !!user });
+      console.log('Supabase ou usuário não disponível:', { 
+        supabase: !!supabase, 
+        user: !!user,
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+        hasAnonKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY
+      });
       return;
     }
 
@@ -340,7 +345,8 @@ export function Dashboard() {
         restaurantId, 
         isFavorite, 
         userId: user.id,
-        supabaseUrl: import.meta.env.VITE_SUPABASE_URL 
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+        session: await supabase.auth.getSession()
       });
       
       if (isFavorite) {
@@ -363,11 +369,19 @@ export function Dashboard() {
         });
       } else {
         console.log('Tentando adicionar favorito...');
+        // Buscar o nome do restaurante
+        const restaurant = restaurants.find(r => r.id === restaurantId);
+        if (!restaurant) {
+          console.error('Restaurante não encontrado');
+          return;
+        }
+
         const { data, error } = await supabase
           .from('favorite_restaurants')
           .insert({
             user_id: user.id,
-            restaurant_id: restaurantId
+            restaurant_id: restaurantId,
+            restaurant_name: restaurant.nome
           })
           .select();
 
@@ -386,6 +400,17 @@ export function Dashboard() {
       }
     } catch (error) {
       console.error('Erro completo ao togglar favorito:', error);
+      // Tentar reautenticar o usuário em caso de erro
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error('Erro ao obter sessão:', sessionError);
+        } else {
+          console.log('Sessão atual:', session);
+        }
+      } catch (sessionError) {
+        console.error('Erro ao verificar sessão:', sessionError);
+      }
     }
   };
 
