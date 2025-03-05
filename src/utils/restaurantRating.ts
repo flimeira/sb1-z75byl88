@@ -2,11 +2,16 @@ import { supabase } from '../lib/supabase';
 
 export async function updateRestaurantRating(restaurantId: string) {
   try {
-    // Buscar todas as avaliações do restaurante
+    // Buscar todas as avaliações dos pedidos do restaurante
     const { data: reviews, error: reviewsError } = await supabase
       .from('order_reviews')
-      .select('rating')
-      .eq('restaurant_id', restaurantId)
+      .select(`
+        rating,
+        order:order_id (
+          restaurant_id
+        )
+      `)
+      .eq('order.restaurant_id', restaurantId)
       .not('rating', 'is', null);
 
     if (reviewsError) throw reviewsError;
