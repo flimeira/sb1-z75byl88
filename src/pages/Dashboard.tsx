@@ -312,20 +312,31 @@ export function Dashboard() {
         .select('restaurant_id')
         .eq('user_id', user.id);
 
-      if (error) throw error;
-      
-      const favorites = new Set(data.map(fav => fav.restaurant_id));
-      setFavoriteRestaurants(favorites);
+      if (error) {
+        console.error('Erro ao buscar restaurantes favoritos:', error);
+        throw error;
+      }
+
+      console.log('Estrutura da tabela favorite_restaurants:', {
+        columns: ['id', 'user_id', 'restaurant_id', 'created_at'],
+        data: data
+      });
+
+      setFavoriteRestaurants(new Set(data.map(fav => fav.restaurant_id)));
     } catch (error) {
       console.error('Error fetching favorite restaurants:', error);
     }
   };
 
   const toggleFavorite = async (restaurantId: string) => {
-    if (!supabase || !user) return;
+    if (!supabase || !user) {
+      console.log('Supabase ou usuário não disponível');
+      return;
+    }
 
     try {
       const isFavorite = favoriteRestaurants.has(restaurantId);
+      console.log('Toggling favorite:', { restaurantId, isFavorite, userId: user.id });
       
       if (isFavorite) {
         const { error } = await supabase
@@ -334,7 +345,10 @@ export function Dashboard() {
           .eq('user_id', user.id)
           .eq('restaurant_id', restaurantId);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Erro ao remover favorito:', error);
+          throw error;
+        }
         
         setFavoriteRestaurants(prev => {
           const newFavorites = new Set(prev);
@@ -342,14 +356,20 @@ export function Dashboard() {
           return newFavorites;
         });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('favorite_restaurants')
           .insert({
             user_id: user.id,
             restaurant_id: restaurantId
-          });
+          })
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Erro ao adicionar favorito:', error);
+          throw error;
+        }
+        
+        console.log('Favorito adicionado com sucesso:', data);
         
         setFavoriteRestaurants(prev => {
           const newFavorites = new Set(prev);
