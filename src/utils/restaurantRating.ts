@@ -66,12 +66,12 @@ export async function updateRestaurantRating(restaurantId: string) {
 
     console.log('Calculated average:', average);
 
-    // Atualizar o rating do restaurante
+    // Atualizar o rating do restaurante usando uma query mais direta
     const { data: updateData, error: updateError } = await supabase
       .from('restaurants')
       .update({ rating: average })
       .eq('id', restaurantId)
-      .select();
+      .select('id, rating');
 
     if (updateError) {
       console.error('Error updating restaurant rating:', updateError);
@@ -79,6 +79,20 @@ export async function updateRestaurantRating(restaurantId: string) {
     }
 
     console.log('Update response:', updateData);
+
+    // Verificar se a atualização foi bem sucedida
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('restaurants')
+      .select('id, rating')
+      .eq('id', restaurantId)
+      .single();
+
+    if (verifyError) {
+      console.error('Error verifying update:', verifyError);
+      throw verifyError;
+    }
+
+    console.log('Verification after update:', verifyData);
     console.log('Successfully updated restaurant rating to:', average);
   } catch (error) {
     console.error('Error in updateRestaurantRating:', error);
