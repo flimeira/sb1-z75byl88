@@ -335,7 +335,7 @@ export function Dashboard() {
                   Voltar para Restaurantes
                 </button>
               ) : (
-                <h1 className="text-xl font-semibold text-gray-900">FoodDelivery</h1>
+                <h1 className="text-xl font-semibold text-gray-900">AmericanaFood</h1>
               )}
             </div>
             <div className="flex items-center">

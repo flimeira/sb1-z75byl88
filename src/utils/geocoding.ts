@@ -18,7 +18,7 @@ export async function geocodeAddress(profile: Profile): Promise<{ latitude: numb
       `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`,
       {
         headers: {
-          'User-Agent': 'FoodDelivery/1.0'
+          'User-Agent': 'AmericanaFood/1.0'
         }
       }
     );
