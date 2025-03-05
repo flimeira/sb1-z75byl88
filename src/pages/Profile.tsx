@@ -158,6 +158,27 @@ export function Profile() {
     e.preventDefault();
     if (!supabase || !profile || !user) return;
 
+    // Validação dos campos obrigatórios
+    const requiredFields = {
+      full_name: 'Nome Completo',
+      birth_date: 'Data de Nascimento',
+      street: 'Rua',
+      number: 'Número',
+      neighborhood: 'Bairro',
+      city: 'Cidade',
+      state: 'Estado',
+      postal_code: 'CEP'
+    };
+
+    const missingFields = Object.entries(requiredFields)
+      .filter(([key]) => !profile[key as keyof Profile])
+      .map(([_, label]) => label);
+
+    if (missingFields.length > 0) {
+      setError(`Por favor, preencha os seguintes campos obrigatórios: ${missingFields.join(', ')}`);
+      return;
+    }
+
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -375,7 +396,7 @@ export function Profile() {
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div>
                     <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-                      Nome Completo
+                      Nome Completo <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -383,12 +404,13 @@ export function Profile() {
                       value={profile?.full_name || ''}
                       onChange={(e) => setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)}
                       className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      required
                     />
                   </div>
 
                   <div>
                     <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700">
-                      Data de Nascimento
+                      Data de Nascimento <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -396,6 +418,7 @@ export function Profile() {
                       value={profile?.birth_date || ''}
                       onChange={(e) => setProfile(prev => prev ? { ...prev, birth_date: e.target.value } : null)}
                       className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      required
                     />
                   </div>
                 </div>
@@ -405,7 +428,7 @@ export function Profile() {
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
                       <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
-                        CEP
+                        CEP <span className="text-red-500">*</span>
                       </label>
                       <div className="mt-1 relative rounded-md shadow-sm">
                         <input
@@ -416,6 +439,7 @@ export function Profile() {
                           placeholder="00000-000"
                           maxLength={9}
                           className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
                         />
                         {loadingCep && (
                           <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -427,7 +451,7 @@ export function Profile() {
 
                     <div className="sm:col-span-2">
                       <label htmlFor="street" className="block text-sm font-medium text-gray-700">
-                        Rua
+                        Rua <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -435,12 +459,13 @@ export function Profile() {
                         value={profile?.street || ''}
                         onChange={(e) => setProfile(prev => prev ? { ...prev, street: e.target.value } : null)}
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
                       />
                     </div>
 
                     <div>
                       <label htmlFor="number" className="block text-sm font-medium text-gray-700">
-                        Número
+                        Número <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -448,6 +473,7 @@ export function Profile() {
                         value={profile?.number || ''}
                         onChange={(e) => setProfile(prev => prev ? { ...prev, number: e.target.value } : null)}
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
                       />
                     </div>
 
@@ -466,7 +492,7 @@ export function Profile() {
 
                     <div>
                       <label htmlFor="neighborhood" className="block text-sm font-medium text-gray-700">
-                        Bairro
+                        Bairro <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -474,12 +500,13 @@ export function Profile() {
                         value={profile?.neighborhood || ''}
                         onChange={(e) => setProfile(prev => prev ? { ...prev, neighborhood: e.target.value } : null)}
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
                       />
                     </div>
 
                     <div>
                       <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-                        Cidade
+                        Cidade <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -487,18 +514,20 @@ export function Profile() {
                         value={profile?.city || ''}
                         onChange={(e) => setProfile(prev => prev ? { ...prev, city: e.target.value } : null)}
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
                       />
                     </div>
 
                     <div>
                       <label htmlFor="state" className="block text-sm font-medium text-gray-700">
-                        Estado
+                        Estado <span className="text-red-500">*</span>
                       </label>
                       <select
                         id="state"
                         value={profile?.state || ''}
                         onChange={(e) => setProfile(prev => prev ? { ...prev, state: e.target.value } : null)}
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
                       >
                         <option value="">Selecione um estado</option>
                         {BRAZILIAN_STATES.map(state => (
