@@ -23,6 +23,7 @@ interface Order {
   id: string;
   order_number: number;
   restaurant: {
+    id: string;
     nome: string;
     imagem: string;
     delivery_fee: number;
@@ -114,6 +115,7 @@ export function Orders() {
           delivery_type,
           created_at,
           restaurant:restaurant_id (
+            id,
             nome,
             imagem,
             delivery_fee
