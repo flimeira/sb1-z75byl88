@@ -38,8 +38,9 @@ export function NotificationCard({ notification }: NotificationCardProps) {
               aria-label="Favoritar restaurante"
             >
               <Heart
-                size={20}
-                className={`${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`}
+                size={24}
+                strokeWidth={2}
+                className={isFavorite ? 'text-red-500' : 'text-gray-400'}
               />
             </button>
           </div>
