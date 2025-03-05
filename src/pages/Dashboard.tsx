@@ -51,14 +51,13 @@ export function Dashboard() {
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [typeMap, setTypeMap] = useState<Record<string, string>>({});
   const [restaurantDistances, setRestaurantDistances] = useState<Record<string, number | null>>({});
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const logoUrl = 'https://bawostbfbkadpsggljfm.supabase.co/storage/v1/object/public/site-assets//logo.jpeg';
 
   useEffect(() => {
     if (user) {
       fetchUserProfile();
     }
     fetchRestaurantTypes();
-    getLogoUrl();
   }, [user]);
 
   // Calculate distances when profile or restaurants change
@@ -302,18 +301,6 @@ export function Dashboard() {
     return matchesSearch && matchesType;
   });
 
-  const getLogoUrl = async () => {
-    if (!supabase) return;
-    
-    const { data } = await supabase.storage
-      .from('site-assets')
-      .getPublicUrl('logo.png');
-    
-    if (data?.publicUrl) {
-      setLogoUrl(data.publicUrl);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -350,9 +337,7 @@ export function Dashboard() {
                 </button>
               ) : (
                 <div className="flex items-center">
-                  {logoUrl ? (
-                    <img src={logoUrl} alt="Logo" className="h-8 w-auto mr-2" />
-                  ) : null}
+                  <img src={logoUrl} alt="Logo" className="h-8 w-auto mr-2" />
                   <h1 className="text-xl font-semibold text-gray-900">AmericanaFood</h1>
                 </div>
               )}

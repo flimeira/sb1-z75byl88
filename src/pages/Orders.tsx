@@ -47,14 +47,13 @@ export function Orders() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const logoUrl = 'https://bawostbfbkadpsggljfm.supabase.co/storage/v1/object/public/site-assets//logo.jpeg';
   const ordersPerPage = 10;
   const totalPages = Math.ceil(totalOrders / ordersPerPage);
 
   useEffect(() => {
     fetchOrdersCount();
     fetchOrders();
-    getLogoUrl();
   }, [currentPage]);
 
   const fetchOrdersCount = async () => {
@@ -144,18 +143,6 @@ export function Orders() {
       console.error('Error fetching orders:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getLogoUrl = async () => {
-    if (!supabase) return;
-    
-    const { data } = await supabase.storage
-      .from('site-assets')
-      .getPublicUrl('logo.png');
-    
-    if (data?.publicUrl) {
-      setLogoUrl(data.publicUrl);
     }
   };
 
@@ -285,9 +272,7 @@ export function Orders() {
             Voltar para o Dashboard
           </button>
           <div className="flex items-center">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="h-8 w-auto mr-2" />
-            ) : null}
+            <img src={logoUrl} alt="Logo" className="h-8 w-auto mr-2" />
             <h1 className="text-xl font-semibold text-gray-900">AmericanaFood</h1>
           </div>
         </div>
