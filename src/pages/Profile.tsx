@@ -373,6 +373,28 @@ export function Profile() {
                 <div className="border-t border-gray-200 pt-6">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Endereço</h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
+                        CEP
+                      </label>
+                      <div className="mt-1 relative rounded-md shadow-sm">
+                        <input
+                          type="text"
+                          id="postalCode"
+                          value={profile?.postal_code || ''}
+                          onChange={handleCepChange}
+                          placeholder="00000-000"
+                          maxLength={9}
+                          className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        {loadingCep && (
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="sm:col-span-2">
                       <label htmlFor="street" className="block text-sm font-medium text-gray-700">
                         Rua
@@ -449,28 +471,6 @@ export function Profile() {
                         onChange={(e) => setProfile(prev => prev ? { ...prev, state: e.target.value } : null)}
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
-                    </div>
-
-                    <div>
-                      <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
-                        CEP
-                      </label>
-                      <div className="mt-1 relative rounded-md shadow-sm">
-                        <input
-                          type="text"
-                          id="postalCode"
-                          value={profile?.postal_code || ''}
-                          onChange={handleCepChange}
-                          placeholder="00000-000"
-                          maxLength={9}
-                          className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                        {loadingCep && (
-                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>
