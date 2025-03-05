@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Star, Clock, ArrowLeft, Plus, Minus, Menu, ShoppingBag, MapPin, AlertCircle } from 'lucide-react';
+import { Search, Star, Clock, ArrowLeft, Plus, Minus, Menu, ShoppingBag, MapPin, AlertCircle, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { CheckoutPage } from '../components/CheckoutPage';
 import { OrderConfirmationModal } from '../components/OrderConfirmationModal';
@@ -51,11 +51,13 @@ export function Dashboard() {
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [typeMap, setTypeMap] = useState<Record<string, string>>({});
   const [restaurantDistances, setRestaurantDistances] = useState<Record<string, number | null>>({});
+  const [favoriteRestaurants, setFavoriteRestaurants] = useState<Set<string>>(new Set());
   const logoUrl = 'https://bawostbfbkadpsggljfm.supabase.co/storage/v1/object/public/site-assets//logo.jpeg';
 
   useEffect(() => {
     if (user) {
       fetchUserProfile();
+      fetchFavoriteRestaurants();
     }
     fetchRestaurantTypes();
   }, [user]);
@@ -301,6 +303,65 @@ export function Dashboard() {
     return matchesSearch && matchesType;
   });
 
+  const fetchFavoriteRestaurants = async () => {
+    if (!supabase || !user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('favorite_restaurants')
+        .select('restaurant_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      const favorites = new Set(data.map(fav => fav.restaurant_id));
+      setFavoriteRestaurants(favorites);
+    } catch (error) {
+      console.error('Error fetching favorite restaurants:', error);
+    }
+  };
+
+  const toggleFavorite = async (restaurantId: string) => {
+    if (!supabase || !user) return;
+
+    try {
+      const isFavorite = favoriteRestaurants.has(restaurantId);
+      
+      if (isFavorite) {
+        const { error } = await supabase
+          .from('favorite_restaurants')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('restaurant_id', restaurantId);
+
+        if (error) throw error;
+        
+        setFavoriteRestaurants(prev => {
+          const newFavorites = new Set(prev);
+          newFavorites.delete(restaurantId);
+          return newFavorites;
+        });
+      } else {
+        const { error } = await supabase
+          .from('favorite_restaurants')
+          .insert({
+            user_id: user.id,
+            restaurant_id: restaurantId
+          });
+
+        if (error) throw error;
+        
+        setFavoriteRestaurants(prev => {
+          const newFavorites = new Set(prev);
+          newFavorites.add(restaurantId);
+          return newFavorites;
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -328,13 +389,28 @@ export function Dashboard() {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               {selectedRestaurant ? (
-                <button
-                  onClick={handleBackClick}
-                  className="flex items-center text-gray-600 hover:text-gray-900"
-                >
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  Voltar para Restaurantes
-                </button>
+                <div className="flex items-center">
+                  <button
+                    onClick={handleBackClick}
+                    className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
+                  >
+                    <ArrowLeft className="w-5 h-5 mr-2" />
+                    Voltar para Restaurantes
+                  </button>
+                  <button
+                    onClick={() => toggleFavorite(selectedRestaurant.id)}
+                    className="p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    aria-label={favoriteRestaurants.has(selectedRestaurant.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                  >
+                    <Heart
+                      className={`w-6 h-6 ${
+                        favoriteRestaurants.has(selectedRestaurant.id)
+                          ? 'text-red-500 fill-current'
+                          : 'text-gray-400'
+                      }`}
+                    />
+                  </button>
+                </div>
               ) : (
                 <div className="flex items-center">
                   <img src={logoUrl} alt="Logo" className="h-8 w-auto mr-2" />
