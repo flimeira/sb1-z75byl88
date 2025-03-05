@@ -369,7 +369,7 @@ export function Dashboard() {
         });
       } else {
         console.log('Tentando adicionar favorito...');
-        // Buscar o nome do restaurante
+        // Buscar o restaurante
         const restaurant = restaurants.find(r => r.id === restaurantId);
         if (!restaurant) {
           console.error('Restaurante não encontrado');
@@ -381,7 +381,8 @@ export function Dashboard() {
           .insert({
             user_id: user.id,
             restaurant_id: restaurantId,
-            restaurant_name: restaurant.nome
+            restaurant_name: restaurant.nome,
+            restaurant_image: restaurant.imagem
           })
           .select();
 
