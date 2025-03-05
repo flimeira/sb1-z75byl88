@@ -9,10 +9,10 @@ export async function updateRestaurantRating(restaurantId: string) {
       throw new Error('Restaurant ID is required');
     }
 
-    // Primeiro, verificar se o restaurante existe
-    const { data: restaurant, error: restaurantError } = await supabase
+    // Primeiro, verificar se o restaurante existe e seu rating atual
+    const { data: currentRestaurant, error: restaurantError } = await supabase
       .from('restaurants')
-      .select('id')
+      .select('id, rating')
       .eq('id', restaurantId)
       .single();
 
@@ -21,10 +21,12 @@ export async function updateRestaurantRating(restaurantId: string) {
       throw restaurantError;
     }
 
-    if (!restaurant) {
+    if (!currentRestaurant) {
       console.error('Restaurant not found with ID:', restaurantId);
       throw new Error('Restaurant not found');
     }
+
+    console.log('Current restaurant data:', currentRestaurant);
 
     // Buscar todas as avaliações dos pedidos do restaurante
     const { data: reviews, error: reviewsError } = await supabase
@@ -48,15 +50,19 @@ export async function updateRestaurantRating(restaurantId: string) {
     if (!reviews || reviews.length === 0) {
       console.log('No reviews found, setting rating to 0');
       // Se não houver avaliações, define o rating como 0
-      const { error: updateError } = await supabase
+      const { data: zeroUpdateData, error: updateError } = await supabase
         .from('restaurants')
         .update({ rating: 0 })
-        .eq('id', restaurantId);
+        .eq('id', restaurantId)
+        .select('id, rating')
+        .single();
 
       if (updateError) {
         console.error('Error updating restaurant rating to 0:', updateError);
         throw updateError;
       }
+
+      console.log('Zero rating update response:', zeroUpdateData);
       return;
     }
 
@@ -71,7 +77,8 @@ export async function updateRestaurantRating(restaurantId: string) {
       .from('restaurants')
       .update({ rating: average })
       .eq('id', restaurantId)
-      .select('id, rating');
+      .select('id, rating')
+      .single();
 
     if (updateError) {
       console.error('Error updating restaurant rating:', updateError);
