@@ -127,10 +127,14 @@ export function Orders() {
 
       if (ordersError) throw ordersError;
 
+      console.log('Raw orders data:', ordersData);
+
       // Process the data
       const processedOrders = ordersData.map(order => {
         // Extract the first review from the array if it exists
-        const reviewData = order.review && order.review.length > 0 ? order.review[0] : null;
+        const reviewData = order.review && Array.isArray(order.review) && order.review.length > 0 
+          ? order.review[0] 
+          : null;
         
         return {
           ...order,
@@ -138,6 +142,7 @@ export function Orders() {
         };
       });
 
+      console.log('Processed orders with reviews:', processedOrders);
       setOrders(processedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
