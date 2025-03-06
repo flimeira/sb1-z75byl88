@@ -89,21 +89,61 @@ export function Profile() {
       }
 
       console.log('Fetching profile for user:', user.id);
-      const { data, error } = await supabase
+      
+      // Primeiro, vamos verificar se o perfil existe
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id);
+
+      if (checkError) {
+        console.error('Error checking profile:', checkError);
+        throw checkError;
+      }
+
+      console.log('Existing profile check:', existingProfile);
+
+      // Se não existir, vamos criar um novo perfil
+      if (!existingProfile || existingProfile.length === 0) {
+        console.log('Creating new profile for user');
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: user.id,
+              name: user.user_metadata?.name || '',
+              email: user.email || '',
+            }
+          ])
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+          throw insertError;
+        }
+
+        console.log('New profile created:', newProfile);
+        setProfile(newProfile);
+        return;
+      }
+
+      // Se existir, vamos buscar o perfil completo
+      const { data: profile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      if (fetchError) {
+        console.error('Error fetching profile:', fetchError);
+        throw fetchError;
       }
 
-      console.log('Profile data:', data);
-      setProfile(data);
+      console.log('Profile data:', profile);
+      setProfile(profile);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error in fetchProfile:', error);
       setError('Erro ao carregar perfil');
     }
   };
