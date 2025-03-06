@@ -144,23 +144,42 @@ export function AddressManager() {
 
       // Buscar coordenadas do endereço usando a API de geocoding
       const addressString = `${formData.street}, ${formData.number}, ${formData.neighborhood}, ${formData.city}, ${formData.state}, ${formData.zip_code}`;
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressString)}`);
+      
+      // Adicionar delay para respeitar o rate limit do OpenStreetMap
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressString)}`,
+        {
+          headers: {
+            'User-Agent': 'Flimeira/1.0' // Identificador para a API
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar coordenadas do endereço');
+      }
+
       const data = await response.json();
+
+      let addressData = {
+        user_id: user.id,
+        ...formData
+      };
 
       if (data && data[0]) {
         const { lat, lon } = data[0];
-        formData.latitude = parseFloat(lat);
-        formData.longitude = parseFloat(lon);
+        addressData = {
+          ...addressData,
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lon)
+        };
       }
 
       const { error } = await supabase
         .from('user_addresses')
-        .insert([
-          {
-            user_id: user.id,
-            ...formData
-          }
-        ]);
+        .insert([addressData]);
 
       if (error) throw error;
 
@@ -189,7 +208,7 @@ export function AddressManager() {
       await fetchAddresses();
     } catch (error) {
       console.error('Error saving address:', error);
-      setError('Erro ao salvar endereço');
+      setError('Erro ao salvar endereço. Por favor, tente novamente.');
     } finally {
       setLoading(false);
     }
