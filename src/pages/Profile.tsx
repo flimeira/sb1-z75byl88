@@ -82,13 +82,25 @@ export function Profile() {
 
   const fetchProfile = async () => {
     try {
+      if (!user?.id) {
+        console.error('No user ID available');
+        setError('Usuário não autenticado');
+        return;
+      }
+
+      console.log('Fetching profile for user:', user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user?.id)
+        .eq('id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Profile data:', data);
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
