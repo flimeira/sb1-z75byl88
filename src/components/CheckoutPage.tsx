@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { Address } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { Label } from './ui/label';
 
 interface Restaurant {
   id: string;
@@ -34,34 +36,42 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
   const [deliveryType, setDeliveryType] = useState('delivery');
   const [paymentMethod, setPaymentMethod] = useState('credit_card');
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user && deliveryType === 'delivery') {
+    if (user) {
       fetchAddresses();
     }
-  }, [user, deliveryType]);
+  }, [user]);
 
   const fetchAddresses = async () => {
+    if (!supabase || !user) return;
+
     try {
       const { data, error } = await supabase
-        .from('user_addresses')
+        .from('addresses')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('is_default', { ascending: false });
 
       if (error) throw error;
+
       setAddresses(data || []);
-      // Selecionar o endereço padrão automaticamente
+      
+      // Selecionar o endereço padrão se existir
       const defaultAddress = data?.find(addr => addr.is_default);
       if (defaultAddress) {
-        setSelectedAddress(defaultAddress);
+        setSelectedAddress(defaultAddress.id);
+      } else if (data && data.length > 0) {
+        setSelectedAddress(data[0].id);
       }
     } catch (error) {
       console.error('Error fetching addresses:', error);
       setError('Erro ao carregar endereços');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -80,12 +90,10 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
     return getCartTotal() + getDeliveryFee();
   };
 
-  const handleConfirm = () => {
-    if (deliveryType === 'delivery' && !selectedAddress) {
-      setError('Selecione um endereço de entrega');
-      return;
-    }
-    onConfirm(notes, deliveryType, paymentMethod, selectedAddress || null);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const selectedAddressData = addresses.find(addr => addr.id === selectedAddress);
+    onConfirm(notes, deliveryType, paymentMethod, deliveryType === 'delivery' ? selectedAddressData || null : null);
   };
 
   if (!restaurant) {
@@ -184,38 +192,34 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
               </div>
             )}
             <div className="space-y-4">
-              {addresses.map((address) => (
-                <label key={address.id} className="flex items-start space-x-3">
-                  <input
-                    type="radio"
-                    name="deliveryAddress"
-                    value={address.id}
-                    checked={selectedAddress?.id === address.id}
-                    onChange={() => setSelectedAddress(address)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 mt-1"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center">
-                      <span className="font-medium text-gray-900">
-                        {address.street}, {address.number}
-                      </span>
-                      {address.is_default && (
-                        <span className="ml-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                          Padrão
+              {loading ? (
+                <div>Carregando endereços...</div>
+              ) : addresses.length > 0 ? (
+                <RadioGroup
+                  value={selectedAddress || ''}
+                  onValueChange={setSelectedAddress}
+                  className="space-y-2"
+                >
+                  {addresses.map((address) => (
+                    <div key={address.id} className="flex items-center space-x-2">
+                      <RadioGroupItem value={address.id} id={address.id} />
+                      <Label htmlFor={address.id} className="flex flex-col">
+                        <span className="font-medium">
+                          {address.street}, {address.number}
+                          {address.complement && ` - ${address.complement}`}
                         </span>
-                      )}
+                        <span className="text-sm text-gray-600">
+                          {address.neighborhood}, {address.city} - {address.state}
+                        </span>
+                        <span className="text-sm text-gray-600">CEP: {address.zip_code}</span>
+                        {address.is_default && (
+                          <span className="text-xs text-blue-600">Endereço padrão</span>
+                        )}
+                      </Label>
                     </div>
-                    {address.complement && (
-                      <p className="text-gray-600">{address.complement}</p>
-                    )}
-                    <p className="text-gray-600">
-                      {address.neighborhood}, {address.city} - {address.state}
-                    </p>
-                    <p className="text-gray-600">CEP: {address.zip_code}</p>
-                  </div>
-                </label>
-              ))}
-              {addresses.length === 0 && (
+                  ))}
+                </RadioGroup>
+              ) : (
                 <div className="text-center py-4">
                   <p className="text-gray-500">Nenhum endereço cadastrado.</p>
                   <a
@@ -334,7 +338,7 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
 
       {/* Confirm Button */}
       <Button
-        onClick={handleConfirm}
+        onClick={handleSubmit}
         disabled={loading || (deliveryType === 'delivery' && !selectedAddress)}
         className="w-full mt-6"
       >
