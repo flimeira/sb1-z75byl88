@@ -277,6 +277,7 @@ export function Dashboard() {
         .single();
 
       if (orderError) throw orderError;
+      if (!order) throw new Error('Pedido não foi criado');
 
       // Criar os itens do pedido
       const orderItems = Object.entries(cart).map(([productId, quantity]) => {
@@ -352,6 +353,7 @@ export function Dashboard() {
         paymentMethod: order.payment_method,
         deliveryAddress: order.delivery_address,
       });
+      setShowOrderConfirmation(true);
     } catch (error) {
       console.error('Error creating order:', error);
       setError('Erro ao criar pedido');
