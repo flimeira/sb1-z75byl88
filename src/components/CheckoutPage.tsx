@@ -51,7 +51,7 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
 
     try {
       const { data, error } = await supabase
-        .from('addresses')
+        .from('user_addresses')
         .select('*')
         .eq('user_id', user.id)
         .order('is_default', { ascending: false });
