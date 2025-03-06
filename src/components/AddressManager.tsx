@@ -142,17 +142,27 @@ export function AddressManager() {
       setLoading(true);
       setError(null);
 
-      // Buscar coordenadas do endereço usando a API de geocoding
-      const addressString = `${formData.street}, ${formData.number}, ${formData.neighborhood}, ${formData.city}, ${formData.state}, ${formData.zip_code}`;
+      // Construir a string do endereço de forma mais precisa
+      const addressString = [
+        formData.street,
+        formData.number,
+        formData.neighborhood,
+        formData.city,
+        formData.state,
+        'Brasil'
+      ].filter(Boolean).join(', ');
+
+      console.log('Buscando coordenadas para:', addressString);
       
       // Adicionar delay para respeitar o rate limit do OpenStreetMap
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressString)}`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressString)}&limit=1`,
         {
           headers: {
-            'User-Agent': 'Flimeira/1.0' // Identificador para a API
+            'User-Agent': 'Flimeira/1.0',
+            'Accept-Language': 'pt-BR'
           }
         }
       );
@@ -162,6 +172,7 @@ export function AddressManager() {
       }
 
       const data = await response.json();
+      console.log('Resposta da API:', data);
 
       let addressData = {
         user_id: user.id,
@@ -170,18 +181,27 @@ export function AddressManager() {
 
       if (data && data[0]) {
         const { lat, lon } = data[0];
+        console.log('Coordenadas encontradas:', { lat, lon });
+        
         addressData = {
           ...addressData,
           latitude: parseFloat(lat),
           longitude: parseFloat(lon)
         };
+      } else {
+        console.log('Nenhuma coordenada encontrada para o endereço');
       }
+
+      console.log('Dados a serem salvos:', addressData);
 
       const { error } = await supabase
         .from('user_addresses')
         .insert([addressData]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao salvar no Supabase:', error);
+        throw error;
+      }
 
       // Se este endereço for padrão, remover o padrão dos outros
       if (formData.is_default) {
