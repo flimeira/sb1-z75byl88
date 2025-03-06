@@ -286,7 +286,7 @@ export function Dashboard() {
           order_id: orderId,
           product_id: productId,
           quantity: quantity,
-          price: product.valor
+          unit_price: product.valor
         };
       }).filter(Boolean);
 
