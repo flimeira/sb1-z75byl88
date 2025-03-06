@@ -136,8 +136,10 @@ export function AddressManager() {
 
   const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase || !user) return;
+    console.log('salvando...');
 
+    if (!supabase || !user) return;
+    console.log('salvando...supabase');
     try {
       setLoading(true);
       setError(null);
