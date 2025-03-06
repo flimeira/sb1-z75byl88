@@ -110,7 +110,7 @@ export function Profile() {
           .from('profiles')
           .insert([
             {
-              id: user.id,
+              user_id: user.id,
               name: user.user_metadata?.name || '',
               email: user.email || '',
             }
@@ -132,7 +132,7 @@ export function Profile() {
       const { data: profile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single();
 
       if (fetchError) {
@@ -211,7 +211,7 @@ export function Profile() {
           name: profile.name,
           phone: profile.phone,
         })
-        .eq('id', user.id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
