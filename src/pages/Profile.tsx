@@ -40,11 +40,8 @@ const BRAZILIAN_STATES = [
 ];
 
 interface Profile {
+  id: string;
   user_id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  avatar_url?: string;
   full_name: string | null;
   birth_date: string | null;
   street: string | null;
@@ -56,6 +53,9 @@ interface Profile {
   postal_code: string | null;
   latitude: number | null;
   longitude: number | null;
+  profile_image: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export function Profile() {
@@ -209,8 +209,15 @@ export function Profile() {
       const { error } = await supabase
         .from('profiles')
         .update({
-          name: profile.name,
-          phone: profile.phone,
+          full_name: profile.full_name,
+          birth_date: profile.birth_date,
+          street: profile.street,
+          number: profile.number,
+          complement: profile.complement,
+          neighborhood: profile.neighborhood,
+          city: profile.city,
+          state: profile.state,
+          postal_code: profile.postal_code,
         })
         .eq('user_id', user.id);
 
@@ -333,13 +340,13 @@ export function Profile() {
             <form onSubmit={handleProfileUpdate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Nome
+                  Nome Completo
                 </label>
                 <input
                   type="text"
-                  value={profile?.name || ''}
+                  value={profile?.full_name || ''}
                   onChange={(e) =>
-                    setProfile(prev => prev ? { ...prev, name: e.target.value } : null)
+                    setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)
                   }
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
@@ -348,28 +355,119 @@ export function Profile() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Email
+                  Data de Nascimento
                 </label>
                 <input
-                  type="email"
-                  value={profile?.email || ''}
-                  disabled
-                  className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
+                  type="date"
+                  value={profile?.birth_date || ''}
+                  onChange={(e) =>
+                    setProfile(prev => prev ? { ...prev, birth_date: e.target.value } : null)
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Telefone
+                  CEP
                 </label>
                 <input
-                  type="tel"
-                  value={profile?.phone || ''}
+                  type="text"
+                  value={profile?.postal_code || ''}
+                  onChange={handleCepChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="00000-000"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Rua
+                </label>
+                <input
+                  type="text"
+                  value={profile?.street || ''}
                   onChange={(e) =>
-                    setProfile(prev => prev ? { ...prev, phone: e.target.value } : null)
+                    setProfile(prev => prev ? { ...prev, street: e.target.value } : null)
                   }
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Número
+                </label>
+                <input
+                  type="text"
+                  value={profile?.number || ''}
+                  onChange={(e) =>
+                    setProfile(prev => prev ? { ...prev, number: e.target.value } : null)
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Complemento
+                </label>
+                <input
+                  type="text"
+                  value={profile?.complement || ''}
+                  onChange={(e) =>
+                    setProfile(prev => prev ? { ...prev, complement: e.target.value } : null)
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Bairro
+                </label>
+                <input
+                  type="text"
+                  value={profile?.neighborhood || ''}
+                  onChange={(e) =>
+                    setProfile(prev => prev ? { ...prev, neighborhood: e.target.value } : null)
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Cidade
+                </label>
+                <input
+                  type="text"
+                  value={profile?.city || ''}
+                  onChange={(e) =>
+                    setProfile(prev => prev ? { ...prev, city: e.target.value } : null)
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Estado
+                </label>
+                <select
+                  value={profile?.state || ''}
+                  onChange={(e) =>
+                    setProfile(prev => prev ? { ...prev, state: e.target.value } : null)
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  <option value="">Selecione um estado</option>
+                  {BRAZILIAN_STATES.map((state) => (
+                    <option key={state.value} value={state.value}>
+                      {state.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex justify-end">
