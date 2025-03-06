@@ -337,8 +337,8 @@ export function Dashboard() {
           {
             user_id: user.id,
             points: pointsConfig.points_per_order,
-            source: 'order',
-            source_id: order.id,
+            action_type: 'order',
+            reference_id: order.id,
             description: `Pontos ganhos pelo pedido #${order.order_number}`,
           }
         ]);
