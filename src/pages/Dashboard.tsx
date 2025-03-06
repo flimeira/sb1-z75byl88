@@ -6,18 +6,11 @@ import { CheckoutPage } from '../components/CheckoutPage';
 import { OrderConfirmationModal } from '../components/OrderConfirmationModal';
 import { Sidebar } from '../components/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
-import { Restaurant } from '../types/restaurant';
+import { Restaurant, Product, CartItem, Order, Address } from '../types';
 import { Profile } from '../types/profile';
 import { calculateRestaurantDistance, isWithinDeliveryRadius } from '../utils/distance';
-
-interface Product {
-  id: string;
-  nome: string;
-  descricao: string;
-  valor: number;
-  imagem: string;
-  category_id: string;
-}
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 
 interface Category {
   id: string;
@@ -29,6 +22,14 @@ interface Category {
 interface RestaurantType {
   id: string;
   tipo: string;
+}
+
+interface OrderConfirmation {
+  orderNumber: string;
+  total: number;
+  deliveryType: string;
+  paymentMethod: string;
+  deliveryAddress?: Address;
 }
 
 export function Dashboard() {
@@ -43,7 +44,7 @@ export function Dashboard() {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [showCheckout, setShowCheckout] = useState(false);
   const [showOrderConfirmation, setShowOrderConfirmation] = useState(false);
-  const [orderNumber, setOrderNumber] = useState<number | null>(null);
+  const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [restaurantTypes, setRestaurantTypes] = useState<RestaurantType[]>([]);
@@ -53,6 +54,7 @@ export function Dashboard() {
   const [restaurantDistances, setRestaurantDistances] = useState<Record<string, number | null>>({});
   const [favoriteRestaurants, setFavoriteRestaurants] = useState<Set<string>>(new Set());
   const logoUrl = 'https://bawostbfbkadpsggljfm.supabase.co/storage/v1/object/public/site-assets//logo.jpeg';
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -238,15 +240,16 @@ export function Dashboard() {
     }, 0);
   };
 
-  const handleConfirmOrder = async (notes: string, deliveryType: string, paymentMethod: string) => {
+  const handleConfirmOrder = async (notes: string, deliveryType: string, paymentMethod: string, deliveryAddress: Address | null) => {
     if (!supabase || !user || !selectedRestaurant) return;
 
     try {
-      // Calculate the total first
+      setLoading(true);
+      setError(null);
       const total = calculateOrderTotal();
 
-      // Create the order first
-      const { data: orderData, error: orderError } = await supabase
+      // Criar o pedido
+      const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
@@ -254,91 +257,100 @@ export function Dashboard() {
           total_amount: total,
           delivery_type: deliveryType,
           payment_method: paymentMethod,
-          notes
+          notes: notes,
+          delivery_address: deliveryAddress ? {
+            street: deliveryAddress.street,
+            number: deliveryAddress.number,
+            complement: deliveryAddress.complement,
+            neighborhood: deliveryAddress.neighborhood,
+            city: deliveryAddress.city,
+            state: deliveryAddress.state,
+            zip_code: deliveryAddress.zip_code,
+            latitude: deliveryAddress.latitude,
+            longitude: deliveryAddress.longitude
+          } : null
         })
-        .select('id, order_number')
+        .select()
         .single();
 
       if (orderError) throw orderError;
 
-      // Then create the order items
+      const orderId = order.id;
+      const orderNumber = order.order_number;
+
+      // Criar os itens do pedido
       const orderItems = Object.entries(cart).map(([productId, quantity]) => {
         const product = products.find(p => p.id === productId);
-        if (!product) throw new Error('Product not found');
+        if (!product) return null;
         return {
-          order_id: orderData.id,
+          order_id: orderId,
           product_id: productId,
-          quantity,
-          unit_price: product.valor
+          quantity: quantity,
+          price: product.valor
         };
-      });
+      }).filter(Boolean);
 
-      // Insert all order items at once
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
 
       if (itemsError) throw itemsError;
 
-      // Buscar configuração de pontos
-      const { data: pointsConfig, error: configError } = await supabase
+      // Atualizar pontos do usuário
+      const { data: pointsConfig } = await supabase
         .from('points_config')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .select('points_per_order')
         .single();
 
-      if (configError) throw configError;
+      if (pointsConfig) {
+        const { data: currentPoints } = await supabase
+          .from('user_points')
+          .select('points')
+          .eq('user_id', user.id)
+          .single();
 
-      // Buscar pontos atuais do usuário
-      const { data: currentPoints, error: currentPointsError } = await supabase
-        .from('user_points')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+        const newPoints = (currentPoints?.points || 0) + pointsConfig.points_per_order;
 
-      if (currentPointsError && currentPointsError.code !== 'PGRST116') throw currentPointsError;
-
-      // Calcular novos pontos
-      const newPoints = (currentPoints?.total_points || 0) + pointsConfig.points_per_order;
-      const expirationDate = currentPoints?.points_expiration_date || 
-        new Date(Date.now() + pointsConfig.points_expiration_days * 24 * 60 * 60 * 1000).toISOString();
-
-      // Adicionar pontos ao usuário
-      const { error: pointsError } = await supabase
-        .from('user_points')
-        .upsert([
-          {
+        const { error: pointsError } = await supabase
+          .from('user_points')
+          .upsert({
             user_id: user.id,
-            total_points: newPoints,
-            points_expiration_date: expirationDate
-          }
-        ], {
-          onConflict: 'user_id'
-        });
+            points: newPoints
+          }, {
+            onConflict: 'user_id'
+          });
 
-      if (pointsError) throw pointsError;
+        if (pointsError) throw pointsError;
 
-      // Registrar no histórico de pontos
-      const { error: historyError } = await supabase
-        .from('points_history')
-        .insert([
-          {
+        // Registrar histórico de pontos
+        const { error: historyError } = await supabase
+          .from('points_history')
+          .insert({
             user_id: user.id,
             points: pointsConfig.points_per_order,
-            action_type: 'order',
-            description: `Pontos ganhos por realizar um pedido`
-          }
-        ]);
+            source: 'order',
+            source_id: orderId,
+            description: `Pontos ganhos pelo pedido #${orderNumber}`
+          });
 
-      if (historyError) throw historyError;
+        if (historyError) throw historyError;
+      }
 
-      setOrderNumber(orderData.order_number);
+      setOrderConfirmation({
+        orderNumber: order.order_number,
+        total: order.total_amount,
+        deliveryType: order.delivery_type,
+        paymentMethod: order.payment_method,
+        deliveryAddress: deliveryAddress
+      });
       setShowOrderConfirmation(true);
       setShowCheckout(false);
       setCart({});
     } catch (error) {
       console.error('Error creating order:', error);
+      setError('Erro ao criar pedido. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -476,6 +488,88 @@ export function Dashboard() {
     );
   }
 
+  if (showOrderConfirmation && orderConfirmation) {
+    return (
+      <div className="container mx-auto max-w-4xl px-4 py-8">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-green-600 mb-2">
+                Pedido Confirmado!
+              </h2>
+              <p className="text-gray-600">
+                Seu pedido foi recebido com sucesso.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Número do Pedido:</span>
+                <span className="font-medium">#{orderConfirmation.orderNumber}</span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Total:</span>
+                <span className="font-medium">
+                  R$ {orderConfirmation.total.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Tipo de Entrega:</span>
+                <span className="font-medium">
+                  {orderConfirmation.deliveryType === 'delivery' ? 'Delivery' : 'Retirada'}
+                </span>
+              </div>
+
+              {orderConfirmation.deliveryType === 'delivery' && orderConfirmation.deliveryAddress && (
+                <div className="mt-4">
+                  <h3 className="font-medium text-gray-900 mb-2">Endereço de Entrega:</h3>
+                  <p className="text-gray-600">
+                    {orderConfirmation.deliveryAddress.street}, {orderConfirmation.deliveryAddress.number}
+                    {orderConfirmation.deliveryAddress.complement && ` - ${orderConfirmation.deliveryAddress.complement}`}
+                  </p>
+                  <p className="text-gray-600">
+                    {orderConfirmation.deliveryAddress.neighborhood}, {orderConfirmation.deliveryAddress.city} - {orderConfirmation.deliveryAddress.state}
+                  </p>
+                  <p className="text-gray-600">CEP: {orderConfirmation.deliveryAddress.zip_code}</p>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Forma de Pagamento:</span>
+                <span className="font-medium">
+                  {orderConfirmation.paymentMethod === 'credit_card' ? 'Cartão de Crédito' : 'Dinheiro'}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-center space-x-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowOrderConfirmation(false);
+                  setSelectedRestaurant(null);
+                }}
+              >
+                Fazer Novo Pedido
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowOrderConfirmation(false);
+                  setSelectedRestaurant(null);
+                }}
+              >
+                Voltar para Restaurantes
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (showCheckout && selectedRestaurant) {
     return (
       <CheckoutPage
@@ -542,16 +636,6 @@ export function Dashboard() {
         userEmail={user?.email || ''}
         onSignOut={signOut}
       />
-
-      {showOrderConfirmation && orderNumber && (
-        <OrderConfirmationModal
-          orderNumber={orderNumber}
-          onClose={() => {
-            setShowOrderConfirmation(false);
-            setSelectedRestaurant(null);
-          }}
-        />
-      )}
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {selectedRestaurant ? (
