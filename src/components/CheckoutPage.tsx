@@ -216,37 +216,41 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                         <ListboxValue placeholder="Selecione um endereço" />
                       </ListboxTrigger>
                       <ListboxContent 
-                        className="max-h-[300px] absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg"
+                        className="w-full bg-white border rounded-lg shadow-lg"
                         position="popper"
                         sideOffset={5}
+                        align="start"
+                        side="bottom"
                       >
-                        {addresses.map((address) => (
-                          <ListboxItem
-                            key={address.id}
-                            value={address.id}
-                            className="py-3 px-4 hover:bg-gray-50 cursor-pointer"
-                          >
-                            <div className="flex items-start">
-                              <div className="flex-1">
-                                <div className="font-medium">
-                                  {getAddressDisplay(address)}
+                        <div className="max-h-[400px] overflow-y-auto">
+                          {addresses.map((address) => (
+                            <ListboxItem
+                              key={address.id}
+                              value={address.id}
+                              className="py-3 px-4 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                            >
+                              <div className="flex items-start">
+                                <div className="flex-1">
+                                  <div className="font-medium">
+                                    {getAddressDisplay(address)}
+                                  </div>
+                                  <div className="text-sm text-gray-600 mt-1">
+                                    {address.neighborhood}, {address.city} - {address.state}
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    CEP: {address.zip_code}
+                                  </div>
+                                  {address.is_default && (
+                                    <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                                      Endereço padrão
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="text-sm text-gray-600 mt-1">
-                                  {address.neighborhood}, {address.city} - {address.state}
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                  CEP: {address.zip_code}
-                                </div>
-                                {address.is_default && (
-                                  <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                                    Endereço padrão
-                                  </span>
-                                )}
+                                <ChevronRight className="w-5 h-5 text-gray-400 ml-4 flex-shrink-0" />
                               </div>
-                              <ChevronRight className="w-5 h-5 text-gray-400 ml-4" />
-                            </div>
-                          </ListboxItem>
-                        ))}
+                            </ListboxItem>
+                          ))}
+                        </div>
                       </ListboxContent>
                     </Listbox>
                   </div>
