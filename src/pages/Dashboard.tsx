@@ -324,6 +324,8 @@ export function Dashboard() {
           user_id: user.id,
           total_points: newPoints,
           points_expiration_date: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id'
         });
 
       if (updateError) throw updateError;
