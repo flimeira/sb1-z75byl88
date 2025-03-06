@@ -5,8 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Address } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { Label } from './ui/label';
+import { Listbox, ListboxContent, ListboxItem, ListboxTrigger, ListboxValue } from './ui/listbox';
 
 interface Restaurant {
   id: string;
@@ -94,6 +93,10 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
     e.preventDefault();
     const selectedAddressData = addresses.find(addr => addr.id === selectedAddress);
     onConfirm(notes, deliveryType, paymentMethod, deliveryType === 'delivery' ? selectedAddressData || null : null);
+  };
+
+  const getAddressDisplay = (address: Address) => {
+    return `${address.street}, ${address.number}${address.complement ? ` - ${address.complement}` : ''}`;
   };
 
   if (!restaurant) {
@@ -195,30 +198,33 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
               {loading ? (
                 <div>Carregando endereços...</div>
               ) : addresses.length > 0 ? (
-                <RadioGroup
-                  value={selectedAddress || ''}
-                  onValueChange={setSelectedAddress}
-                  className="space-y-2"
-                >
-                  {addresses.map((address) => (
-                    <div key={address.id} className="flex items-center space-x-2">
-                      <RadioGroupItem value={address.id} id={address.id} />
-                      <Label htmlFor={address.id} className="flex flex-col">
-                        <span className="font-medium">
-                          {address.street}, {address.number}
-                          {address.complement && ` - ${address.complement}`}
-                        </span>
-                        <span className="text-sm text-gray-600">
+                <Listbox value={selectedAddress || ''} onValueChange={setSelectedAddress}>
+                  <ListboxTrigger className="w-full">
+                    <ListboxValue placeholder="Selecione um endereço" />
+                  </ListboxTrigger>
+                  <ListboxContent>
+                    {addresses.map((address) => (
+                      <ListboxItem
+                        key={address.id}
+                        value={address.id}
+                        className="flex flex-col items-start py-2"
+                      >
+                        <div className="font-medium">
+                          {getAddressDisplay(address)}
+                        </div>
+                        <div className="text-sm text-gray-600">
                           {address.neighborhood}, {address.city} - {address.state}
-                        </span>
-                        <span className="text-sm text-gray-600">CEP: {address.zip_code}</span>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          CEP: {address.zip_code}
+                        </div>
                         {address.is_default && (
-                          <span className="text-xs text-blue-600">Endereço padrão</span>
+                          <span className="text-xs text-blue-600 mt-1">Endereço padrão</span>
                         )}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
+                      </ListboxItem>
+                    ))}
+                  </ListboxContent>
+                </Listbox>
               ) : (
                 <div className="text-center py-4">
                   <p className="text-gray-500">Nenhum endereço cadastrado.</p>
