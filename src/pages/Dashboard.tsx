@@ -280,6 +280,59 @@ export function Dashboard() {
 
       if (itemsError) throw itemsError;
 
+      // Buscar configuração de pontos
+      const { data: pointsConfig, error: configError } = await supabase
+        .from('points_config')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (configError) throw configError;
+
+      // Buscar pontos atuais do usuário
+      const { data: currentPoints, error: currentPointsError } = await supabase
+        .from('user_points')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (currentPointsError && currentPointsError.code !== 'PGRST116') throw currentPointsError;
+
+      // Calcular novos pontos
+      const newPoints = (currentPoints?.total_points || 0) + pointsConfig.points_per_order;
+      const expirationDate = currentPoints?.points_expiration_date || 
+        new Date(Date.now() + pointsConfig.points_expiration_days * 24 * 60 * 60 * 1000).toISOString();
+
+      // Adicionar pontos ao usuário
+      const { error: pointsError } = await supabase
+        .from('user_points')
+        .upsert([
+          {
+            user_id: user.id,
+            total_points: newPoints,
+            points_expiration_date: expirationDate
+          }
+        ], {
+          onConflict: 'user_id'
+        });
+
+      if (pointsError) throw pointsError;
+
+      // Registrar no histórico de pontos
+      const { error: historyError } = await supabase
+        .from('points_history')
+        .insert([
+          {
+            user_id: user.id,
+            points: pointsConfig.points_per_order,
+            action_type: 'order',
+            description: `Pontos ganhos por realizar um pedido`
+          }
+        ]);
+
+      if (historyError) throw historyError;
+
       setOrderNumber(orderData.order_number);
       setShowOrderConfirmation(true);
       setShowCheckout(false);
