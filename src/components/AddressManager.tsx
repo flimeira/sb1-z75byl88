@@ -196,9 +196,22 @@ export function AddressManager() {
 
       console.log('Dados a serem salvos:', addressData);
 
-      const { error } = await supabase
-        .from('user_addresses')
-        .insert([addressData]);
+      let error;
+      if (editingAddress) {
+        // Atualizar endereço existente
+        const { error: updateError } = await supabase
+          .from('user_addresses')
+          .update(addressData)
+          .eq('id', editingAddress.id)
+          .eq('user_id', user.id);
+        error = updateError;
+      } else {
+        // Inserir novo endereço
+        const { error: insertError } = await supabase
+          .from('user_addresses')
+          .insert([addressData]);
+        error = insertError;
+      }
 
       if (error) {
         console.error('Erro ao salvar no Supabase:', error);
@@ -211,7 +224,7 @@ export function AddressManager() {
           .from('user_addresses')
           .update({ is_default: false })
           .eq('user_id', user.id)
-          .neq('id', formData.id);
+          .neq('id', editingAddress?.id || '');
       }
 
       setFormData({
@@ -227,6 +240,8 @@ export function AddressManager() {
         longitude: 0
       });
 
+      setEditingAddress(null);
+      setShowForm(false);
       await fetchAddresses();
     } catch (error) {
       console.error('Error saving address:', error);
