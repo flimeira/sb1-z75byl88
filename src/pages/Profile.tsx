@@ -93,8 +93,8 @@ export function Profile() {
       // Primeiro, vamos verificar se o perfil existe
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('id', user.id);
+        .select('user_id')
+        .eq('user_id', user.id);
 
       if (checkError) {
         console.error('Error checking profile:', checkError);
