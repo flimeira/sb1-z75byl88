@@ -40,7 +40,7 @@ const BRAZILIAN_STATES = [
 ];
 
 interface Profile {
-  id: string;
+  user_id: string;
   name: string;
   email: string;
   phone?: string;
@@ -93,7 +93,7 @@ export function Profile() {
       // Primeiro, vamos verificar se o perfil existe
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
-        .select('user_id')
+        .select('*')
         .eq('user_id', user.id);
 
       if (checkError) {
@@ -141,6 +141,7 @@ export function Profile() {
       }
 
       console.log('Profile data:', profile);
+      console.log('User data:', user);
       setProfile(profile);
     } catch (error) {
       console.error('Error in fetchProfile:', error);
