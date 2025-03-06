@@ -5,6 +5,37 @@ import { useAuth } from '../contexts/AuthContext';
 import { Address } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
+import { fetchAddressFromCep } from '../utils/cep';
+
+const BRAZILIAN_STATES = [
+  { value: 'AC', label: 'Acre' },
+  { value: 'AL', label: 'Alagoas' },
+  { value: 'AP', label: 'Amapá' },
+  { value: 'AM', label: 'Amazonas' },
+  { value: 'BA', label: 'Bahia' },
+  { value: 'CE', label: 'Ceará' },
+  { value: 'DF', label: 'Distrito Federal' },
+  { value: 'ES', label: 'Espírito Santo' },
+  { value: 'GO', label: 'Goiás' },
+  { value: 'MA', label: 'Maranhão' },
+  { value: 'MT', label: 'Mato Grosso' },
+  { value: 'MS', label: 'Mato Grosso do Sul' },
+  { value: 'MG', label: 'Minas Gerais' },
+  { value: 'PA', label: 'Pará' },
+  { value: 'PB', label: 'Paraíba' },
+  { value: 'PR', label: 'Paraná' },
+  { value: 'PE', label: 'Pernambuco' },
+  { value: 'PI', label: 'Piauí' },
+  { value: 'RJ', label: 'Rio de Janeiro' },
+  { value: 'RN', label: 'Rio Grande do Norte' },
+  { value: 'RS', label: 'Rio Grande do Sul' },
+  { value: 'RO', label: 'Rondônia' },
+  { value: 'RR', label: 'Roraima' },
+  { value: 'SC', label: 'Santa Catarina' },
+  { value: 'SP', label: 'São Paulo' },
+  { value: 'SE', label: 'Sergipe' },
+  { value: 'TO', label: 'Tocantins' }
+];
 
 interface AddressFormData {
   street: string;
@@ -25,6 +56,7 @@ export function AddressManager() {
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingCep, setLoadingCep] = useState(false);
   const [formData, setFormData] = useState<AddressFormData>({
     street: '',
     number: '',
@@ -57,6 +89,35 @@ export function AddressManager() {
     }
   };
 
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cep = e.target.value;
+    setFormData(prev => ({ ...prev, zip_code: cep }));
+
+    // Remove caracteres não numéricos para verificar o comprimento
+    const cleanCep = cep.replace(/\D/g, '');
+    
+    if (cleanCep.length === 8) {
+      setLoadingCep(true);
+      try {
+        const address = await fetchAddressFromCep(cep);
+        if (address) {
+          setFormData(prev => ({
+            ...prev,
+            street: address.street,
+            neighborhood: address.neighborhood,
+            city: address.city,
+            state: address.state
+          }));
+        }
+      } catch (error) {
+        console.error('Erro ao buscar endereço:', error);
+        setError('Erro ao buscar endereço pelo CEP');
+      } finally {
+        setLoadingCep(false);
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -68,7 +129,6 @@ export function AddressManager() {
       const addressData = {
         ...formData,
         user_id: user.id,
-        is_default: addresses.length === 0, // Primeiro endereço é padrão
       };
 
       if (editingAddress) {
@@ -86,7 +146,6 @@ export function AddressManager() {
         if (error) throw error;
       }
 
-      await fetchAddresses();
       setShowForm(false);
       setEditingAddress(null);
       setFormData({
@@ -98,6 +157,7 @@ export function AddressManager() {
         state: '',
         zip_code: '',
       });
+      fetchAddresses();
     } catch (error) {
       console.error('Error saving address:', error);
       setError('Erro ao salvar endereço');
@@ -107,7 +167,7 @@ export function AddressManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este endereço?')) return;
+    if (!user) return;
 
     try {
       setLoading(true);
@@ -116,11 +176,11 @@ export function AddressManager() {
       const { error } = await supabase
         .from('user_addresses')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
       if (error) throw error;
-
-      await fetchAddresses();
+      fetchAddresses();
     } catch (error) {
       console.error('Error deleting address:', error);
       setError('Erro ao excluir endereço');
@@ -130,27 +190,30 @@ export function AddressManager() {
   };
 
   const handleSetDefault = async (id: string) => {
+    if (!user) return;
+
     try {
       setLoading(true);
       setError(null);
 
-      // Primeiro, remover o padrão de todos os endereços
-      const { error: updateError } = await supabase
+      // Primeiro, remove o padrão de todos os endereços
+      const { error: resetError } = await supabase
         .from('user_addresses')
         .update({ is_default: false })
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
+
+      if (resetError) throw resetError;
+
+      // Depois, define o novo endereço como padrão
+      const { error: updateError } = await supabase
+        .from('user_addresses')
+        .update({ is_default: true })
+        .eq('id', id)
+        .eq('user_id', user.id);
 
       if (updateError) throw updateError;
 
-      // Depois, definir o novo endereço como padrão
-      const { error: setDefaultError } = await supabase
-        .from('user_addresses')
-        .update({ is_default: true })
-        .eq('id', id);
-
-      if (setDefaultError) throw setDefaultError;
-
-      await fetchAddresses();
+      fetchAddresses();
     } catch (error) {
       console.error('Error setting default address:', error);
       setError('Erro ao definir endereço padrão');
@@ -214,14 +277,26 @@ export function AddressManager() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
+                  CEP
+                </label>
+                <input
+                  type="text"
+                  value={formData.zip_code}
+                  onChange={handleCepChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="00000-000"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
                   Rua
                 </label>
                 <input
                   type="text"
                   value={formData.street}
-                  onChange={(e) =>
-                    setFormData({ ...formData, street: e.target.value })
-                  }
+                  onChange={(e) => setFormData(prev => ({ ...prev, street: e.target.value }))}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
@@ -234,9 +309,7 @@ export function AddressManager() {
                 <input
                   type="text"
                   value={formData.number}
-                  onChange={(e) =>
-                    setFormData({ ...formData, number: e.target.value })
-                  }
+                  onChange={(e) => setFormData(prev => ({ ...prev, number: e.target.value }))}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
@@ -249,9 +322,7 @@ export function AddressManager() {
                 <input
                   type="text"
                   value={formData.complement}
-                  onChange={(e) =>
-                    setFormData({ ...formData, complement: e.target.value })
-                  }
+                  onChange={(e) => setFormData(prev => ({ ...prev, complement: e.target.value }))}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
@@ -263,9 +334,7 @@ export function AddressManager() {
                 <input
                   type="text"
                   value={formData.neighborhood}
-                  onChange={(e) =>
-                    setFormData({ ...formData, neighborhood: e.target.value })
-                  }
+                  onChange={(e) => setFormData(prev => ({ ...prev, neighborhood: e.target.value }))}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
@@ -278,9 +347,7 @@ export function AddressManager() {
                 <input
                   type="text"
                   value={formData.city}
-                  onChange={(e) =>
-                    setFormData({ ...formData, city: e.target.value })
-                  }
+                  onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
@@ -290,30 +357,19 @@ export function AddressManager() {
                 <label className="block text-sm font-medium text-gray-700">
                   Estado
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.state}
-                  onChange={(e) =>
-                    setFormData({ ...formData, state: e.target.value })
-                  }
+                  onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  CEP
-                </label>
-                <input
-                  type="text"
-                  value={formData.zip_code}
-                  onChange={(e) =>
-                    setFormData({ ...formData, zip_code: e.target.value })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
+                >
+                  <option value="">Selecione um estado</option>
+                  {BRAZILIAN_STATES.map((state) => (
+                    <option key={state.value} value={state.value}>
+                      {state.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex justify-end space-x-4">
@@ -328,7 +384,7 @@ export function AddressManager() {
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? 'Salvando...' : 'Salvar'}
+                  {loading ? 'Salvando...' : editingAddress ? 'Atualizar' : 'Salvar'}
                 </Button>
               </div>
             </form>
