@@ -246,47 +246,47 @@ export function Dashboard() {
     try {
       setLoading(true);
       setError(null);
-      const total = calculateOrderTotal();
+
+      const totalAmount = calculateOrderTotal();
 
       // Criar o pedido
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .insert({
-          user_id: user.id,
-          restaurant_id: selectedRestaurant.id,
-          total_amount: total,
-          delivery_type: deliveryType,
-          payment_method: paymentMethod,
-          notes: notes,
-          delivery_address: deliveryAddress ? {
-            street: deliveryAddress.street,
-            number: deliveryAddress.number,
-            complement: deliveryAddress.complement,
-            neighborhood: deliveryAddress.neighborhood,
-            city: deliveryAddress.city,
-            state: deliveryAddress.state,
-            zip_code: deliveryAddress.zip_code,
-            latitude: deliveryAddress.latitude,
-            longitude: deliveryAddress.longitude
-          } : null
-        })
+        .insert([
+          {
+            user_id: user.id,
+            restaurant_id: selectedRestaurant.id,
+            total_amount: totalAmount,
+            delivery_type: deliveryType,
+            payment_method: paymentMethod,
+            notes,
+            delivery_address: deliveryAddress ? {
+              street: deliveryAddress.street,
+              number: deliveryAddress.number,
+              complement: deliveryAddress.complement,
+              neighborhood: deliveryAddress.neighborhood,
+              city: deliveryAddress.city,
+              state: deliveryAddress.state,
+              zip_code: deliveryAddress.zip_code,
+              latitude: deliveryAddress.latitude,
+              longitude: deliveryAddress.longitude
+            } : null
+          }
+        ])
         .select()
         .single();
 
       if (orderError) throw orderError;
-
-      const orderId = order.id;
-      const orderNumber = order.order_number;
 
       // Criar os itens do pedido
       const orderItems = Object.entries(cart).map(([productId, quantity]) => {
         const product = products.find(p => p.id === productId);
         if (!product) return null;
         return {
-          order_id: orderId,
+          order_id: order.id,
           product_id: productId,
-          quantity: quantity,
-          unit_price: product.valor
+          quantity,
+          unit_price: product.valor,
         };
       }).filter(Boolean);
 
@@ -296,59 +296,65 @@ export function Dashboard() {
 
       if (itemsError) throw itemsError;
 
-      // Atualizar pontos do usuário
-      const { data: pointsConfig } = await supabase
+      // Buscar configuração de pontos
+      const { data: pointsConfig, error: configError } = await supabase
         .from('points_config')
-        .select('points_per_order')
+        .select('*')
         .single();
 
-      if (pointsConfig) {
-        const { data: currentPoints } = await supabase
-          .from('user_points')
-          .select('points')
-          .eq('user_id', user.id)
-          .single();
+      if (configError) throw configError;
 
-        const newPoints = (currentPoints?.points || 0) + pointsConfig.points_per_order;
+      // Buscar pontos atuais do usuário
+      const { data: currentPoints, error: pointsError } = await supabase
+        .from('user_points')
+        .select('total_points')
+        .eq('user_id', user.id)
+        .single();
 
-        const { error: pointsError } = await supabase
-          .from('user_points')
-          .upsert({
-            user_id: user.id,
-            points: newPoints
-          }, {
-            onConflict: 'user_id'
-          });
+      if (pointsError) throw pointsError;
 
-        if (pointsError) throw pointsError;
+      // Calcular novos pontos
+      const newPoints = (currentPoints?.total_points || 0) + pointsConfig.points_per_order;
 
-        // Registrar histórico de pontos
-        const { error: historyError } = await supabase
-          .from('points_history')
-          .insert({
+      // Atualizar pontos do usuário
+      const { error: updateError } = await supabase
+        .from('user_points')
+        .upsert({
+          user_id: user.id,
+          total_points: newPoints,
+          points_expiration_date: new Date().toISOString(),
+        });
+
+      if (updateError) throw updateError;
+
+      // Registrar histórico de pontos
+      const { error: historyError } = await supabase
+        .from('points_history')
+        .insert([
+          {
             user_id: user.id,
             points: pointsConfig.points_per_order,
             source: 'order',
-            source_id: orderId,
-            description: `Pontos ganhos pelo pedido #${orderNumber}`
-          });
+            source_id: order.id,
+            description: `Pontos ganhos pelo pedido #${order.order_number}`,
+          }
+        ]);
 
-        if (historyError) throw historyError;
-      }
+      if (historyError) throw historyError;
 
-      setOrderConfirmation({
-        orderNumber: order.order_number,
-        total: order.total_amount,
-        deliveryType: order.delivery_type,
-        paymentMethod: order.payment_method,
-        deliveryAddress: deliveryAddress
-      });
-      setShowOrderConfirmation(true);
+      // Atualizar estado
       setShowCheckout(false);
       setCart({});
+      setOrderConfirmation({
+        orderNumber: order.order_number,
+        totalAmount: order.total_amount,
+        deliveryType: order.delivery_type,
+        paymentMethod: order.payment_method,
+        deliveryAddress: order.delivery_address,
+      });
     } catch (error) {
       console.error('Error creating order:', error);
-      setError('Erro ao criar pedido. Tente novamente.');
+      setError('Erro ao criar pedido');
     } finally {
       setLoading(false);
     }
@@ -511,7 +517,7 @@ export function Dashboard() {
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Total:</span>
                 <span className="font-medium">
-                  R$ {orderConfirmation.total.toFixed(2)}
+                  R$ {orderConfirmation.totalAmount.toFixed(2)}
                 </span>
               </div>
 
