@@ -6,6 +6,7 @@ import { Address } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { fetchAddressFromCep } from '../utils/cep';
+import { getCoordinatesFromAddress } from '../utils/geocoding';
 
 const BRAZILIAN_STATES = [
   { value: 'AC', label: 'Acre' },
@@ -144,54 +145,58 @@ export function AddressManager() {
       setLoading(true);
       setError(null);
 
-      // Construir a string do endereço de forma mais precisa
-      const addressString = [
-        formData.street,
-        formData.number,
-        formData.neighborhood,
-        formData.city,
-        formData.state,
-        'Brasil'
-      ].filter(Boolean).join(', ');
-
-      console.log('Buscando coordenadas para:', addressString);
-      
-      // Adicionar delay para respeitar o rate limit do OpenStreetMap
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressString)}&limit=1`,
-        {
-          headers: {
-            'User-Agent': 'Flimeira/1.0',
-            'Accept-Language': 'pt-BR'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Erro ao buscar coordenadas do endereço');
-      }
-
-      const data = await response.json();
-      console.log('Resposta da API:', data);
-
       let addressData = {
         user_id: user.id,
         ...formData
       };
 
-      if (data && data[0]) {
-        const { lat, lon } = data[0];
-        console.log('Coordenadas encontradas:', { lat, lon });
+      try {
+        // Construir a string do endereço apenas com campos essenciais
+        const addressString = [
+          formData.street,
+          formData.number,
+          formData.city,
+          formData.state,
+          'Brasil'
+        ].filter(Boolean).join(', ');
+
+        console.log('Buscando coordenadas para:', addressString);
         
-        addressData = {
-          ...addressData,
-          latitude: parseFloat(lat),
-          longitude: parseFloat(lon)
-        };
-      } else {
-        console.log('Nenhuma coordenada encontrada para o endereço');
+        // Adicionar delay para respeitar o rate limit do OpenStreetMap
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressString)}&limit=1`,
+          {
+            headers: {
+              'User-Agent': 'Flimeira/1.0',
+              'Accept-Language': 'pt-BR'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar coordenadas do endereço');
+        }
+
+        const data = await response.json();
+        console.log('Resposta da API:', data);
+
+        if (data && data[0]) {
+          const { lat, lon } = data[0];
+          console.log('Coordenadas encontradas:', { lat, lon });
+          
+          addressData = {
+            ...addressData,
+            latitude: parseFloat(lat),
+            longitude: parseFloat(lon)
+          };
+        } else {
+          console.log('Nenhuma coordenada encontrada para o endereço');
+        }
+      } catch (error) {
+        console.error('Erro ao buscar coordenadas:', error);
+        // Continua salvando mesmo se não encontrar as coordenadas
       }
 
       console.log('Dados a serem salvos:', addressData);

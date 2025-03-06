@@ -42,3 +42,34 @@ export async function geocodeAddress(profile: Profile): Promise<{ latitude: numb
     return null;
   }
 }
+
+export async function getCoordinatesFromAddress(address: string, city: string, state: string, country: string = 'Brasil') {
+  const apiKey = process.env.NEXT_PUBLIC_BING_MAPS_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error('Bing Maps API key não configurada');
+  }
+
+  const addressString = `${address}, ${city}, ${state}, ${country}`;
+  const encodedAddress = encodeURIComponent(addressString);
+  
+  const response = await fetch(
+    `https://dev.virtualearth.net/REST/v1/Locations?q=${encodedAddress}&key=${apiKey}`
+  );
+
+  if (!response.ok) {
+    throw new Error('Erro ao buscar coordenadas do endereço');
+  }
+
+  const data = await response.json();
+
+  if (data.resourceSets && data.resourceSets[0]?.resources?.[0]?.point?.coordinates) {
+    const [longitude, latitude] = data.resourceSets[0].resources[0].point.coordinates;
+    return {
+      latitude,
+      longitude
+    };
+  }
+
+  throw new Error('Endereço não encontrado');
+}
