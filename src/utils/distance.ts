@@ -57,38 +57,93 @@ export function isWithinDeliveryRadius(restaurant: Restaurant, profile: Profile)
 // Calculate distance between restaurant and user's default address
 export async function calculateRestaurantDistanceWithDefaultAddress(restaurant: Restaurant, userId: string): Promise<number | null> {
   try {
+    console.log('Calculando distância para restaurante:', {
+      restaurante: {
+        id: restaurant.id,
+        nome: restaurant.nome,
+        latitude: restaurant.latitude,
+        longitude: restaurant.longitude
+      }
+    });
+
     // Get user's default address
     const { data: defaultAddress, error } = await supabase
       .from('user_addresses')
-      .select('latitude, longitude')
+      .select('latitude, longitude, street, number, neighborhood, city')
       .eq('user_id', userId)
       .eq('is_default', true)
       .single();
 
-    if (error || !defaultAddress) {
-      console.error('Error fetching default address:', error);
+    if (error) {
+      console.error('Erro ao buscar endereço padrão:', error);
+      return null;
+    }
+
+    if (!defaultAddress) {
+      console.log('Endereço padrão não encontrado para o usuário:', userId);
+      return null;
+    }
+
+    console.log('Endereço padrão encontrado:', defaultAddress);
+
+    if (!restaurant.latitude || !restaurant.longitude || !defaultAddress.latitude || !defaultAddress.longitude) {
+      console.log('Coordenadas faltando:', {
+        restaurante: {
+          latitude: restaurant.latitude,
+          longitude: restaurant.longitude
+        },
+        endereco: {
+          latitude: defaultAddress.latitude,
+          longitude: defaultAddress.longitude
+        }
+      });
       return null;
     }
 
     const restaurantCoords: Coordinates = {
-      latitude: restaurant.latitude,
-      longitude: restaurant.longitude
+      lat: restaurant.latitude,
+      lon: restaurant.longitude
     };
 
     const addressCoords: Coordinates = {
-      latitude: defaultAddress.latitude,
-      longitude: defaultAddress.longitude
+      lat: defaultAddress.latitude,
+      lon: defaultAddress.longitude
     };
 
-    return calculateDistance(restaurantCoords, addressCoords);
+    const distance = calculateDistance(restaurantCoords, addressCoords);
+    console.log('Distância calculada:', {
+      restaurante: restaurant.nome,
+      endereco: `${defaultAddress.street}, ${defaultAddress.number}`,
+      distancia: distance
+    });
+
+    return distance;
   } catch (error) {
-    console.error('Error calculating distance with default address:', error);
+    console.error('Erro ao calcular distância com endereço padrão:', error);
     return null;
   }
 }
 
 export async function isWithinDeliveryRadiusWithDefaultAddress(restaurant: Restaurant, userId: string): Promise<boolean> {
+  console.log('Verificando raio de entrega para:', {
+    restaurante: restaurant.nome,
+    raio_entrega: restaurant.delivery_radius
+  });
+
   const distance = await calculateRestaurantDistanceWithDefaultAddress(restaurant, userId);
-  if (distance === null) return false;
-  return distance <= restaurant.delivery_radius;
+  
+  if (distance === null) {
+    console.log('Não foi possível calcular a distância para:', restaurant.nome);
+    return false;
+  }
+
+  const isInRange = distance <= restaurant.delivery_radius;
+  console.log('Resultado da verificação:', {
+    restaurante: restaurant.nome,
+    distancia: distance,
+    raio_entrega: restaurant.delivery_radius,
+    dentro_do_raio: isInRange
+  });
+
+  return isInRange;
 }
