@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { User, Lock, Save, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { AddressManager } from '../components/AddressManager';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 
@@ -82,9 +83,10 @@ export default function Profile() {
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .single();
 
-      if (checkError) {
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 é o código para "nenhum resultado encontrado"
         console.error('Error checking profile:', checkError);
         throw checkError;
       }
@@ -92,7 +94,7 @@ export default function Profile() {
       console.log('Existing profile check:', existingProfile);
 
       // Se não existir, vamos criar um novo perfil
-      if (!existingProfile || existingProfile.length === 0) {
+      if (!existingProfile) {
         console.log('Creating new profile for user');
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
@@ -116,21 +118,10 @@ export default function Profile() {
         return;
       }
 
-      // Se existir, vamos buscar o perfil completo
-      const { data: profile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching profile:', fetchError);
-        throw fetchError;
-      }
-
-      console.log('Profile data:', profile);
+      // Se existir, vamos usar o perfil encontrado
+      console.log('Profile data:', existingProfile);
       console.log('User data:', user);
-      setProfile(profile);
+      setProfile(existingProfile);
     } catch (error) {
       console.error('Error in fetchProfile:', error);
       setError('Erro ao carregar perfil');
@@ -371,6 +362,15 @@ export default function Profile() {
                     </Button>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Endereços</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AddressManager />
               </CardContent>
             </Card>
           </div>
