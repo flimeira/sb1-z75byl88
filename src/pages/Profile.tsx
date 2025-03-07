@@ -41,7 +41,6 @@ interface Profile {
   id: string;
   user_id: string;
   full_name: string;
-  email: string;
   birth_date: string | null;
   avatar_url: string | null;
   created_at: string;
@@ -62,10 +61,12 @@ export default function Profile() {
   });
   const [saving, setSaving] = useState(false);
   const [phone, setPhone] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       setPhone(user.user_metadata?.phone || null);
+      setEmail(user.email || null);
       fetchProfile();
     }
   }, [user]);
@@ -102,7 +103,6 @@ export default function Profile() {
         const newProfileData = {
           user_id: user.id,
           full_name: user.user_metadata?.name || user.email?.split('@')[0] || '',
-          email: user.email || '',
           birth_date: user.user_metadata?.birth_date || null,
         };
         console.log('New profile data:', newProfileData);
@@ -126,14 +126,7 @@ export default function Profile() {
       // Se existir, vamos usar o perfil encontrado
       console.log('Profile data:', existingProfile);
       console.log('User data:', user);
-
-      // Garantir que os campos estejam preenchidos com os dados mais recentes do usuário
-      const updatedProfile = {
-        ...existingProfile,
-        email: user.email || existingProfile.email,
-      };
-      console.log('Updated profile data:', updatedProfile);
-      setProfile(updatedProfile);
+      setProfile(existingProfile);
     } catch (error) {
       console.error('Error in fetchProfile:', error);
       setError('Erro ao carregar perfil');
@@ -153,17 +146,26 @@ export default function Profile() {
         .from('profiles')
         .update({
           full_name: profile.full_name,
-          email: profile.email,
           birth_date: profile.birth_date,
         })
         .eq('user_id', user.id);
 
       if (profileError) throw profileError;
 
-      // Atualizar os metadados do usuário (telefone)
+      // Atualizar os metadados do usuário (email e telefone)
+      const metadataUpdates: { [key: string]: any } = {};
+      
+      if (email !== user.email) {
+        metadataUpdates.email = email;
+      }
+      
       if (phone !== user.user_metadata?.phone) {
+        metadataUpdates.phone = phone;
+      }
+
+      if (Object.keys(metadataUpdates).length > 0) {
         const { error: metadataError } = await supabase.auth.updateUser({
-          data: { phone }
+          data: metadataUpdates
         });
 
         if (metadataError) throw metadataError;
@@ -271,10 +273,8 @@ export default function Profile() {
                     </label>
                     <input
                       type="email"
-                      value={profile.email}
-                      onChange={(e) =>
-                        setProfile(prev => prev ? { ...prev, email: e.target.value } : null)
-                      }
+                      value={email || ''}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="w-full p-2 border rounded-md"
                       required
                     />
