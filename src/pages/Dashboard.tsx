@@ -103,15 +103,24 @@ export function Dashboard() {
   };
 
   const fetchRestaurantTypes = async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      console.log('Supabase não está disponível');
+      return;
+    }
 
     try {
+      console.log('Iniciando busca de tipos de restaurantes...');
       const { data, error } = await supabase
         .from('tipos')
         .select('*')
         .order('tipo');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar tipos:', error);
+        throw error;
+      }
+      
+      console.log('Tipos de restaurantes encontrados:', data);
       setRestaurantTypes(data || []);
       
       // Create a map of type IDs to type names
@@ -122,22 +131,32 @@ export function Dashboard() {
       setTypeMap(types);
       
       // Now fetch restaurants after we have the type map
+      console.log('Iniciando busca de restaurantes...');
       fetchRestaurants(types);
     } catch (error) {
-      console.error('Error fetching restaurant types:', error);
+      console.error('Erro ao buscar tipos de restaurantes:', error);
     }
   };
 
   const fetchRestaurants = async (typesMap: Record<string, string> = {}) => {
-    if (!supabase) return;
+    if (!supabase) {
+      console.log('Supabase não está disponível para buscar restaurantes');
+      return;
+    }
 
     try {
+      console.log('Buscando restaurantes do banco de dados...');
       const { data, error } = await supabase
         .from('restaurants')
         .select('*')
         .order('nome');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar restaurantes:', error);
+        throw error;
+      }
+      
+      console.log('Restaurantes encontrados:', data);
       
       // Map the database column names to the expected property names in the Restaurant interface
       // and replace the type ID with the actual type name
@@ -147,9 +166,10 @@ export function Dashboard() {
         tipo: typesMap[restaurant.idtipo] || 'Desconhecido' // Use the type name from the map
       })) || [];
       
+      console.log('Restaurantes mapeados:', mappedRestaurants);
       setRestaurants(mappedRestaurants);
     } catch (error) {
-      console.error('Error fetching restaurants:', error);
+      console.error('Erro ao buscar restaurantes:', error);
     } finally {
       setLoading(false);
     }
@@ -371,7 +391,16 @@ export function Dashboard() {
     : products;
 
   const filterRestaurants = async () => {
-    if (!user || !restaurants) return;
+    if (!user || !restaurants) {
+      console.log('Usuário ou restaurantes não disponíveis:', { user: !!user, restaurants: !!restaurants });
+      return;
+    }
+
+    console.log('Iniciando filtro de restaurantes:', {
+      totalRestaurants: restaurants.length,
+      searchTerm,
+      selectedType
+    });
 
     // Primeiro, filtrar por termo de busca e tipo
     const searchAndTypeFiltered = restaurants.filter(restaurant => {
@@ -379,6 +408,8 @@ export function Dashboard() {
       const matchesType = !selectedType || selectedType === 'All' || restaurant.idtipo === selectedType;
       return matchesSearch && matchesType;
     });
+
+    console.log('Restaurantes após filtro de busca e tipo:', searchAndTypeFiltered);
 
     // Depois, verificar o raio de entrega
     const filtered = await Promise.all(
@@ -388,7 +419,9 @@ export function Dashboard() {
       })
     );
 
-    setFilteredRestaurants(filtered.filter((r): r is Restaurant => r !== null));
+    const finalFiltered = filtered.filter((r): r is Restaurant => r !== null);
+    console.log('Restaurantes após verificação de raio de entrega:', finalFiltered);
+    setFilteredRestaurants(finalFiltered);
   };
 
   useEffect(() => {
