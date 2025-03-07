@@ -40,7 +40,7 @@ const BRAZILIAN_STATES = [
 interface Profile {
   id: string;
   user_id: string;
-  name: string;
+  full_name: string;
   email: string;
   phone: string | null;
   birth_date: string | null;
@@ -100,7 +100,7 @@ export default function Profile() {
         console.log('Creating new profile for user');
         const newProfileData = {
           user_id: user.id,
-          name: user.user_metadata?.name || user.email?.split('@')[0] || '',
+          full_name: user.user_metadata?.name || user.email?.split('@')[0] || '',
           email: user.email || '',
           phone: user.user_metadata?.phone || null,
           birth_date: user.user_metadata?.birth_date || null,
@@ -144,7 +144,7 @@ export default function Profile() {
       const { error } = await supabase
         .from('profiles')
         .update({
-          name: profile.name,
+          full_name: profile.full_name,
           email: profile.email,
           phone: profile.phone,
           birth_date: profile.birth_date,
@@ -240,9 +240,9 @@ export default function Profile() {
                     </label>
                     <input
                       type="text"
-                      value={profile.name}
+                      value={profile.full_name}
                       onChange={(e) =>
-                        setProfile(prev => prev ? { ...prev, name: e.target.value } : null)
+                        setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)
                       }
                       className="w-full p-2 border rounded-md"
                       required
