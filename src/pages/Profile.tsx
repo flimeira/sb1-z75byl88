@@ -184,8 +184,14 @@ export default function Profile() {
     e.preventDefault();
     if (!user) return;
 
+    // Validações de senha
+    if (passwordData.new_password.length < 6) {
+      setError('A nova senha deve ter pelo menos 6 caracteres para garantir sua segurança.');
+      return;
+    }
+
     if (passwordData.new_password !== passwordData.confirm_password) {
-      setError('As senhas não coincidem');
+      setError('As senhas não coincidem. Por favor, verifique se digitou corretamente.');
       return;
     }
 
@@ -197,7 +203,12 @@ export default function Profile() {
         password: passwordData.new_password,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('weak password')) {
+          throw new Error('A senha escolhida é muito fraca. Por favor, escolha uma senha mais forte com pelo menos 6 caracteres.');
+        }
+        throw error;
+      }
 
       setShowPasswordForm(false);
       setPasswordData({
@@ -206,9 +217,9 @@ export default function Profile() {
         confirm_password: '',
       });
       setError('Senha atualizada com sucesso!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating password:', error);
-      setError('Erro ao atualizar senha');
+      setError(error.message || 'Erro ao atualizar senha. Por favor, tente novamente.');
     } finally {
       setLoading(false);
     }
