@@ -78,6 +78,8 @@ export default function Profile() {
       }
 
       console.log('Fetching profile for user:', user.id);
+      console.log('User metadata:', user.user_metadata);
+      console.log('User email:', user.email);
       
       // Primeiro, vamos verificar se o perfil existe
       const { data: existingProfile, error: checkError } = await supabase
@@ -96,15 +98,18 @@ export default function Profile() {
       // Se não existir, vamos criar um novo perfil
       if (!existingProfile) {
         console.log('Creating new profile for user');
+        const newProfileData = {
+          user_id: user.id,
+          name: user.user_metadata?.name || user.email?.split('@')[0] || '',
+          email: user.email || '',
+          phone: user.user_metadata?.phone || null,
+          birth_date: user.user_metadata?.birth_date || null,
+        };
+        console.log('New profile data:', newProfileData);
+
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
-          .insert([
-            {
-              user_id: user.id,
-              name: user.user_metadata?.name || '',
-              email: user.email || '',
-            }
-          ])
+          .insert([newProfileData])
           .select()
           .single();
 
