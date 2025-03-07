@@ -42,7 +42,6 @@ interface Profile {
   user_id: string;
   full_name: string;
   email: string;
-  phone: string | null;
   birth_date: string | null;
   avatar_url: string | null;
   created_at: string;
@@ -62,9 +61,11 @@ export default function Profile() {
     confirm_password: ''
   });
   const [saving, setSaving] = useState(false);
+  const [phone, setPhone] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
+      setPhone(user.user_metadata?.phone || null);
       fetchProfile();
     }
   }, [user]);
@@ -80,7 +81,6 @@ export default function Profile() {
       console.log('Fetching profile for user:', user.id);
       console.log('User metadata:', user.user_metadata);
       console.log('User email:', user.email);
-      console.log('User phone:', user.user_metadata?.phone);
       
       // Primeiro, vamos verificar se o perfil existe
       const { data: existingProfile, error: checkError } = await supabase
@@ -103,7 +103,6 @@ export default function Profile() {
           user_id: user.id,
           full_name: user.user_metadata?.name || user.email?.split('@')[0] || '',
           email: user.email || '',
-          phone: user.user_metadata?.phone || null,
           birth_date: user.user_metadata?.birth_date || null,
         };
         console.log('New profile data:', newProfileData);
@@ -132,7 +131,6 @@ export default function Profile() {
       const updatedProfile = {
         ...existingProfile,
         email: user.email || existingProfile.email,
-        phone: user.user_metadata?.phone || existingProfile.phone,
       };
       console.log('Updated profile data:', updatedProfile);
       setProfile(updatedProfile);
@@ -150,17 +148,26 @@ export default function Profile() {
       setLoading(true);
       setError(null);
 
-      const { error } = await supabase
+      // Atualizar o perfil
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           full_name: profile.full_name,
           email: profile.email,
-          phone: profile.phone,
           birth_date: profile.birth_date,
         })
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Atualizar os metadados do usuário (telefone)
+      if (phone !== user.user_metadata?.phone) {
+        const { error: metadataError } = await supabase.auth.updateUser({
+          data: { phone }
+        });
+
+        if (metadataError) throw metadataError;
+      }
 
       setError('Perfil atualizado com sucesso!');
     } catch (error) {
@@ -293,10 +300,8 @@ export default function Profile() {
                     </label>
                     <input
                       type="tel"
-                      value={profile.phone || ''}
-                      onChange={(e) =>
-                        setProfile(prev => prev ? { ...prev, phone: e.target.value } : null)
-                      }
+                      value={phone || ''}
+                      onChange={(e) => setPhone(e.target.value)}
                       className="w-full p-2 border rounded-md"
                     />
                   </div>

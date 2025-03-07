@@ -6,14 +6,10 @@
       - `id` (uuid, primary key)
       - `user_id` (uuid, references auth.users)
       - `full_name` (text)
+      - `email` (text)
+      - `phone` (text)
       - `birth_date` (date)
-      - `street` (text)
-      - `number` (text)
-      - `complement` (text)
-      - `neighborhood` (text)
-      - `city` (text)
-      - `state` (text)
-      - `postal_code` (text)
+      - `avatar_url` (text)
       - `created_at` (timestamptz)
       - `updated_at` (timestamptz)
 
@@ -25,19 +21,15 @@
 */
 
 CREATE TABLE IF NOT EXISTS profiles (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES auth.users NOT NULL UNIQUE,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name text,
+  email text,
+  phone text,
   birth_date date,
-  street text,
-  number text,
-  complement text,
-  neighborhood text,
-  city text,
-  state text,
-  postal_code text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  avatar_url text,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
