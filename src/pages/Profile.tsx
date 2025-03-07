@@ -80,6 +80,7 @@ export default function Profile() {
       console.log('Fetching profile for user:', user.id);
       console.log('User metadata:', user.user_metadata);
       console.log('User email:', user.email);
+      console.log('User phone:', user.user_metadata?.phone);
       
       // Primeiro, vamos verificar se o perfil existe
       const { data: existingProfile, error: checkError } = await supabase
@@ -126,7 +127,15 @@ export default function Profile() {
       // Se existir, vamos usar o perfil encontrado
       console.log('Profile data:', existingProfile);
       console.log('User data:', user);
-      setProfile(existingProfile);
+
+      // Garantir que os campos estejam preenchidos com os dados mais recentes do usuário
+      const updatedProfile = {
+        ...existingProfile,
+        email: user.email || existingProfile.email,
+        phone: user.user_metadata?.phone || existingProfile.phone,
+      };
+      console.log('Updated profile data:', updatedProfile);
+      setProfile(updatedProfile);
     } catch (error) {
       console.error('Error in fetchProfile:', error);
       setError('Erro ao carregar perfil');
