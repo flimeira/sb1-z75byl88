@@ -232,170 +232,215 @@ export default function Profile() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Meu Perfil</h1>
-
-        {error && (
-          <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6">
-            {error}
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center mb-8">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/dashboard')}
+              className="mr-4 hover:bg-gray-100"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Voltar
+            </Button>
+            <h1 className="text-2xl font-bold text-gray-900">Meu Perfil</h1>
           </div>
-        )}
 
-        {loading ? (
-          <div className="text-center py-8">Carregando...</div>
-        ) : profile ? (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Informações Pessoais</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSaveProfile} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nome
-                    </label>
-                    <input
-                      type="text"
-                      value={profile.full_name}
-                      onChange={(e) =>
-                        setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)
-                      }
-                      className="w-full p-2 border rounded-md"
-                      required
-                    />
-                  </div>
+          {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 border border-red-200">
+              {error}
+            </div>
+          )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={email || ''}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full p-2 border rounded-md"
-                      required
-                    />
-                  </div>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Carregando...</p>
+            </div>
+          ) : profile ? (
+            <div className="space-y-6">
+              <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="border-b bg-white">
+                  <CardTitle className="text-xl text-gray-900">Informações Pessoais</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <form onSubmit={handleSaveProfile} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Nome
+                        </label>
+                        <input
+                          type="text"
+                          value={profile.full_name}
+                          onChange={(e) =>
+                            setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)
+                          }
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                          required
+                        />
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Data de Nascimento
-                    </label>
-                    <input
-                      type="date"
-                      value={profile.birth_date || ''}
-                      onChange={(e) =>
-                        setProfile(prev => prev ? { ...prev, birth_date: e.target.value } : null)
-                      }
-                      className="w-full p-2 border rounded-md"
-                    />
-                  </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          value={email || ''}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                          required
+                        />
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Telefone
-                    </label>
-                    <input
-                      type="tel"
-                      value={phone || ''}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full p-2 border rounded-md"
-                    />
-                  </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Data de Nascimento
+                        </label>
+                        <input
+                          type="date"
+                          value={profile.birth_date || ''}
+                          onChange={(e) =>
+                            setProfile(prev => prev ? { ...prev, birth_date: e.target.value } : null)
+                          }
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        />
+                      </div>
 
-                  <div className="flex justify-end">
-                    <Button type="submit" disabled={saving}>
-                      {saving ? 'Salvando...' : 'Salvar Alterações'}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Telefone
+                        </label>
+                        <input
+                          type="tel"
+                          value={phone || ''}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        />
+                      </div>
+                    </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Alterar Senha</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleChangePassword} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Senha Atual
-                    </label>
-                    <input
-                      type="password"
-                      value={passwordData.current_password}
-                      onChange={(e) =>
-                        setPasswordData(prev => ({
-                          ...prev,
-                          current_password: e.target.value
-                        }))
-                      }
-                      className="w-full p-2 border rounded-md"
-                      required
-                    />
-                  </div>
+                    <div className="flex justify-end pt-4">
+                      <Button 
+                        type="submit" 
+                        disabled={saving}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+                      >
+                        {saving ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Salvando...
+                          </div>
+                        ) : (
+                          'Salvar Alterações'
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nova Senha
-                    </label>
-                    <input
-                      type="password"
-                      value={passwordData.new_password}
-                      onChange={(e) =>
-                        setPasswordData(prev => ({
-                          ...prev,
-                          new_password: e.target.value
-                        }))
-                      }
-                      className="w-full p-2 border rounded-md"
-                      required
-                    />
-                  </div>
+              <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="border-b bg-white">
+                  <CardTitle className="text-xl text-gray-900">Alterar Senha</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <form onSubmit={handleChangePassword} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Senha Atual
+                        </label>
+                        <input
+                          type="password"
+                          value={passwordData.current_password}
+                          onChange={(e) =>
+                            setPasswordData(prev => ({
+                              ...prev,
+                              current_password: e.target.value
+                            }))
+                          }
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                          required
+                        />
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Confirmar Nova Senha
-                    </label>
-                    <input
-                      type="password"
-                      value={passwordData.confirm_password}
-                      onChange={(e) =>
-                        setPasswordData(prev => ({
-                          ...prev,
-                          confirm_password: e.target.value
-                        }))
-                      }
-                      className="w-full p-2 border rounded-md"
-                      required
-                    />
-                  </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Nova Senha
+                        </label>
+                        <input
+                          type="password"
+                          value={passwordData.new_password}
+                          onChange={(e) =>
+                            setPasswordData(prev => ({
+                              ...prev,
+                              new_password: e.target.value
+                            }))
+                          }
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                          required
+                        />
+                      </div>
 
-                  <div className="flex justify-end">
-                    <Button type="submit" disabled={saving}>
-                      {saving ? 'Alterando...' : 'Alterar Senha'}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Confirmar Nova Senha
+                        </label>
+                        <input
+                          type="password"
+                          value={passwordData.confirm_password}
+                          onChange={(e) =>
+                            setPasswordData(prev => ({
+                              ...prev,
+                              confirm_password: e.target.value
+                            }))
+                          }
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                          required
+                        />
+                      </div>
+                    </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Endereços</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AddressManager />
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <div className="text-center py-8">Perfil não encontrado</div>
-        )}
+                    <div className="flex justify-end pt-4">
+                      <Button 
+                        type="submit" 
+                        disabled={saving}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+                      >
+                        {saving ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Alterando...
+                          </div>
+                        ) : (
+                          'Alterar Senha'
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="border-b bg-white">
+                  <CardTitle className="text-xl text-gray-900">Endereços</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <AddressManager />
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-yellow-800">Perfil não encontrado</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
