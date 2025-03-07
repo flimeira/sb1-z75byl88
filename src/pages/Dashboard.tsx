@@ -56,6 +56,7 @@ export function Dashboard() {
   const logoUrl = 'https://bawostbfbkadpsggljfm.supabase.co/storage/v1/object/public/site-assets//logo.jpeg';
   const [error, setError] = useState<string | null>(null);
   const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
+  const [restaurantDeliveryStatus, setRestaurantDeliveryStatus] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (user) {
@@ -506,6 +507,21 @@ export function Dashboard() {
     }
   };
 
+  // Adicionar useEffect para verificar o status de entrega dos restaurantes
+  useEffect(() => {
+    const checkDeliveryStatus = async () => {
+      if (!user || !filteredRestaurants) return;
+      
+      const status: Record<string, boolean> = {};
+      for (const restaurant of filteredRestaurants) {
+        status[restaurant.id] = await isWithinDeliveryRadiusWithDefaultAddress(restaurant, user.id);
+      }
+      setRestaurantDeliveryStatus(status);
+    };
+
+    checkDeliveryStatus();
+  }, [filteredRestaurants, user]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -878,14 +894,14 @@ export function Dashboard() {
               {filteredRestaurants.length > 0 ? (
                 filteredRestaurants.map(restaurant => {
                   const distance = restaurantDistances[restaurant.id];
-                  const isInRange = await isWithinDeliveryRadiusWithDefaultAddress(restaurant, user.id);
+                  const isInRange = restaurantDeliveryStatus[restaurant.id] ?? false;
                   
                   return (
                     <div
                       key={restaurant.id}
                       onClick={() => handleRestaurantSelect(restaurant)}
                       className={`bg-white rounded-lg shadow-md overflow-hidden transition-all ${
-                        isInRange === false 
+                        !isInRange 
                           ? 'opacity-60 cursor-not-allowed' 
                           : 'cursor-pointer hover:shadow-lg'
                       }`}
