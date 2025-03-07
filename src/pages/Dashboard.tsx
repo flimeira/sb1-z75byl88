@@ -196,13 +196,10 @@ export function Dashboard() {
   };
 
   const handleRestaurantSelect = async (restaurant: Restaurant) => {
-    // Check if restaurant is within delivery radius
-    if (userProfile) {
-      const isInRange = await isWithinDeliveryRadiusWithDefaultAddress(restaurant, user.id);
-      if (!isInRange) {
-        // Don't allow selection if out of range
-        return;
-      }
+    const isInRange = restaurantDeliveryStatus[restaurant.id];
+    if (!isInRange) {
+      // Se estiver fora do raio de entrega, não permite a seleção
+      return;
     }
     
     setSelectedRestaurant(restaurant);
@@ -399,49 +396,30 @@ export function Dashboard() {
     console.log('Iniciando filtro de restaurantes:', {
       totalRestaurants: restaurants.length,
       searchTerm,
-      selectedType,
-      restaurants: restaurants.map(r => ({
-        id: r.id,
-        nome: r.nome,
-        idtipo: r.idtipo,
-        tipo: r.tipo
-      }))
+      selectedType
     });
 
     // Primeiro, filtrar por termo de busca e tipo
     const searchAndTypeFiltered = restaurants.filter(restaurant => {
       const matchesSearch = restaurant.nome.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = !selectedType || selectedType === 'All' || restaurant.idtipo === selectedType;
-      
-      console.log('Verificando restaurante:', {
-        nome: restaurant.nome,
-        idtipo: restaurant.idtipo,
-        selectedType,
-        matchesType,
-        matchesSearch
-      });
-      
       return matchesSearch && matchesType;
     });
 
-    console.log('Restaurantes após filtro de busca e tipo:', searchAndTypeFiltered.map(r => ({
-      id: r.id,
-      nome: r.nome,
-      idtipo: r.idtipo,
-      tipo: r.tipo
-    })));
+    console.log('Restaurantes após filtro de busca e tipo:', searchAndTypeFiltered.length);
 
-    // Depois, verificar o raio de entrega
-    const filtered = await Promise.all(
-      searchAndTypeFiltered.map(async (restaurant) => {
-        const isInRange = await isWithinDeliveryRadiusWithDefaultAddress(restaurant, user.id);
-        return isInRange ? restaurant : null;
-      })
-    );
+    // Definir todos os restaurantes filtrados, independente do raio de entrega
+    setFilteredRestaurants(searchAndTypeFiltered);
 
-    const finalFiltered = filtered.filter((r): r is Restaurant => r !== null);
-    console.log('Restaurantes após verificação de raio de entrega:', finalFiltered);
-    setFilteredRestaurants(finalFiltered);
+    // Verificar o raio de entrega para atualizar o status
+    const deliveryStatus: Record<string, boolean> = {};
+    for (const restaurant of searchAndTypeFiltered) {
+      const isInRange = await isWithinDeliveryRadiusWithDefaultAddress(restaurant, user.id);
+      deliveryStatus[restaurant.id] = isInRange;
+    }
+
+    console.log('Status de entrega dos restaurantes:', deliveryStatus);
+    setRestaurantDeliveryStatus(deliveryStatus);
   };
 
   useEffect(() => {
@@ -559,21 +537,6 @@ export function Dashboard() {
       }
     }
   };
-
-  // Adicionar useEffect para verificar o status de entrega dos restaurantes
-  useEffect(() => {
-    const checkDeliveryStatus = async () => {
-      if (!user || !filteredRestaurants) return;
-      
-      const status: Record<string, boolean> = {};
-      for (const restaurant of filteredRestaurants) {
-        status[restaurant.id] = await isWithinDeliveryRadiusWithDefaultAddress(restaurant, user.id);
-      }
-      setRestaurantDeliveryStatus(status);
-    };
-
-    checkDeliveryStatus();
-  }, [filteredRestaurants, user]);
 
   if (loading) {
     return (
