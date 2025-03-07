@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { User, Lock, Save, ArrowLeft, MapPin } from 'lucide-react';
-import { geocodeAddress } from '../utils/geocoding';
-import { fetchAddressFromCep } from '../utils/cep';
+import { User, Lock, Save, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { AddressManager } from '../components/AddressManager';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 
@@ -64,8 +61,6 @@ export default function Profile() {
     confirm_password: ''
   });
   const [saving, setSaving] = useState(false);
-  const [updatingCoordinates, setUpdatingCoordinates] = useState(false);
-  const [loadingCep, setLoadingCep] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -142,55 +137,6 @@ export default function Profile() {
     }
   };
 
-  const updateCoordinates = async () => {
-    if (!profile) {
-      setError('Perfil não encontrado');
-      return;
-    }
-
-    if (!profile.street || !profile.number || !profile.city || !profile.state) {
-      setError('Preencha o endereço completo para atualizar as coordenadas');
-      return;
-    }
-
-    setUpdatingCoordinates(true);
-    setError(null);
-
-    try {
-      const coordinates = await geocodeAddress(profile);
-      
-      if (!coordinates) {
-        throw new Error('Não foi possível encontrar as coordenadas para o endereço informado');
-      }
-
-      if (profile && user) {
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            latitude: coordinates.latitude,
-            longitude: coordinates.longitude,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', user.id);
-
-        if (error) throw error;
-        
-        setProfile(prev => prev ? {
-          ...prev,
-          latitude: coordinates.latitude,
-          longitude: coordinates.longitude
-        } : null);
-        
-        setError('Coordenadas atualizadas com sucesso!');
-      }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Falha ao atualizar as coordenadas');
-      console.error('Error updating coordinates:', error);
-    } finally {
-      setUpdatingCoordinates(false);
-    }
-  };
-
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !profile) return;
@@ -251,34 +197,6 @@ export default function Profile() {
       setError('Erro ao atualizar senha');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const cep = e.target.value;
-    setProfile(prev => prev ? { ...prev, postal_code: cep } : null);
-
-    // Remove caracteres não numéricos para verificar o comprimento
-    const cleanCep = cep.replace(/\D/g, '');
-    
-    if (cleanCep.length === 8) {
-      setLoadingCep(true);
-      try {
-        const address = await fetchAddressFromCep(cep);
-        if (address) {
-          setProfile(prev => prev ? {
-            ...prev,
-            street: address.street,
-            neighborhood: address.neighborhood,
-            city: address.city,
-            state: address.state
-          } : null);
-        }
-      } catch (error) {
-        console.error('Erro ao buscar endereço:', error);
-      } finally {
-        setLoadingCep(false);
-      }
     }
   };
 
