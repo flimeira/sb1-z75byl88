@@ -399,17 +399,37 @@ export function Dashboard() {
     console.log('Iniciando filtro de restaurantes:', {
       totalRestaurants: restaurants.length,
       searchTerm,
-      selectedType
+      selectedType,
+      restaurants: restaurants.map(r => ({
+        id: r.id,
+        nome: r.nome,
+        idtipo: r.idtipo,
+        tipo: r.tipo
+      }))
     });
 
     // Primeiro, filtrar por termo de busca e tipo
     const searchAndTypeFiltered = restaurants.filter(restaurant => {
       const matchesSearch = restaurant.nome.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = !selectedType || selectedType === 'All' || restaurant.idtipo === selectedType;
+      
+      console.log('Verificando restaurante:', {
+        nome: restaurant.nome,
+        idtipo: restaurant.idtipo,
+        selectedType,
+        matchesType,
+        matchesSearch
+      });
+      
       return matchesSearch && matchesType;
     });
 
-    console.log('Restaurantes após filtro de busca e tipo:', searchAndTypeFiltered);
+    console.log('Restaurantes após filtro de busca e tipo:', searchAndTypeFiltered.map(r => ({
+      id: r.id,
+      nome: r.nome,
+      idtipo: r.idtipo,
+      tipo: r.tipo
+    })));
 
     // Depois, verificar o raio de entrega
     const filtered = await Promise.all(
@@ -898,7 +918,10 @@ export function Dashboard() {
             <div className="flex flex-wrap items-center justify-between mb-6">
               <div className="flex overflow-x-auto pb-2 mb-2 md:mb-0">
                 <button
-                  onClick={() => setSelectedType(null)}
+                  onClick={() => {
+                    console.log('Selecionando todos os tipos');
+                    setSelectedType(null);
+                  }}
                   className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap mr-2 ${
                     selectedType === null
                       ? 'bg-blue-600 text-white'
@@ -910,7 +933,13 @@ export function Dashboard() {
                 {restaurantTypes.map(type => (
                   <button
                     key={type.id}
-                    onClick={() => setSelectedType(type.id)}
+                    onClick={() => {
+                      console.log('Selecionando tipo:', {
+                        id: type.id,
+                        tipo: type.tipo
+                      });
+                      setSelectedType(type.id);
+                    }}
                     className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap mr-2 ${
                       selectedType === type.id
                         ? 'bg-blue-600 text-white'
