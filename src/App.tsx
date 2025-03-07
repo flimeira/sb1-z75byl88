@@ -5,7 +5,7 @@ import { SignUp } from './pages/SignUp';
 import { ResetPassword } from './pages/ResetPassword';
 import { UpdatePassword } from './pages/UpdatePassword';
 import { Dashboard } from './pages/Dashboard';
-import { Profile } from './pages/Profile';
+import Profile from './pages/Profile';
 import { Orders } from './pages/Orders';
 import { Feedback } from './pages/Feedback';
 import { Notifications } from './pages/Notifications';
