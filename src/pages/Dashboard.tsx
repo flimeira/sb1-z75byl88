@@ -8,7 +8,7 @@ import { Sidebar } from '../components/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
 import { Restaurant, Product, CartItem, Order, Address } from '../types';
 import { Profile } from '../types/profile';
-import { calculateRestaurantDistance, isWithinDeliveryRadius } from '../utils/distance';
+import { calculateRestaurantDistance, isWithinDeliveryRadius, isWithinDeliveryRadiusWithDefaultAddress } from '../utils/distance';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 
@@ -55,6 +55,7 @@ export function Dashboard() {
   const [favoriteRestaurants, setFavoriteRestaurants] = useState<Set<string>>(new Set());
   const logoUrl = 'https://bawostbfbkadpsggljfm.supabase.co/storage/v1/object/public/site-assets//logo.jpeg';
   const [error, setError] = useState<string | null>(null);
+  const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -176,7 +177,7 @@ export function Dashboard() {
   const handleRestaurantSelect = async (restaurant: Restaurant) => {
     // Check if restaurant is within delivery radius
     if (userProfile) {
-      const isInRange = isWithinDeliveryRadius(restaurant, userProfile);
+      const isInRange = await isWithinDeliveryRadiusWithDefaultAddress(restaurant, user.id);
       if (!isInRange) {
         // Don't allow selection if out of range
         return;
@@ -368,15 +369,30 @@ export function Dashboard() {
     ? products.filter(product => product.category_id === selectedCategory)
     : products;
 
-  const filteredRestaurants = restaurants.filter(restaurant => {
-    // Filter by search term
-    const matchesSearch = restaurant.nome.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Filter by restaurant type
-    const matchesType = !selectedType || selectedType === 'All' || restaurant.idtipo === selectedType;
-    
-    return matchesSearch && matchesType;
-  });
+  const filterRestaurants = async () => {
+    if (!user || !restaurants) return;
+
+    // Primeiro, filtrar por termo de busca e tipo
+    const searchAndTypeFiltered = restaurants.filter(restaurant => {
+      const matchesSearch = restaurant.nome.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = !selectedType || selectedType === 'All' || restaurant.idtipo === selectedType;
+      return matchesSearch && matchesType;
+    });
+
+    // Depois, verificar o raio de entrega
+    const filtered = await Promise.all(
+      searchAndTypeFiltered.map(async (restaurant) => {
+        const isInRange = await isWithinDeliveryRadiusWithDefaultAddress(restaurant, user.id);
+        return isInRange ? restaurant : null;
+      })
+    );
+
+    setFilteredRestaurants(filtered.filter((r): r is Restaurant => r !== null));
+  };
+
+  useEffect(() => {
+    filterRestaurants();
+  }, [restaurants, user, searchTerm, selectedType]);
 
   const fetchFavoriteRestaurants = async () => {
     if (!supabase || !user) return;
@@ -862,7 +878,7 @@ export function Dashboard() {
               {filteredRestaurants.length > 0 ? (
                 filteredRestaurants.map(restaurant => {
                   const distance = restaurantDistances[restaurant.id];
-                  const isInRange = userProfile && isWithinDeliveryRadius(restaurant, userProfile);
+                  const isInRange = await isWithinDeliveryRadiusWithDefaultAddress(restaurant, user.id);
                   
                   return (
                     <div

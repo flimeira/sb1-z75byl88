@@ -1,5 +1,6 @@
 import { Profile } from '../types/profile';
 import { Restaurant } from '../types/restaurant';
+import { supabase } from '../lib/supabase';
 
 interface Coordinates {
   lat: number;
@@ -49,6 +50,45 @@ export function calculateRestaurantDistance(restaurant: Restaurant, profile: Pro
 // Check if restaurant delivers to user's location
 export function isWithinDeliveryRadius(restaurant: Restaurant, profile: Profile): boolean {
   const distance = calculateRestaurantDistance(restaurant, profile);
+  if (distance === null) return false;
+  return distance <= restaurant.delivery_radius;
+}
+
+// Calculate distance between restaurant and user's default address
+export async function calculateRestaurantDistanceWithDefaultAddress(restaurant: Restaurant, userId: string): Promise<number | null> {
+  try {
+    // Get user's default address
+    const { data: defaultAddress, error } = await supabase
+      .from('user_addresses')
+      .select('latitude, longitude')
+      .eq('user_id', userId)
+      .eq('is_default', true)
+      .single();
+
+    if (error || !defaultAddress) {
+      console.error('Error fetching default address:', error);
+      return null;
+    }
+
+    const restaurantCoords: Coordinates = {
+      latitude: restaurant.latitude,
+      longitude: restaurant.longitude
+    };
+
+    const addressCoords: Coordinates = {
+      latitude: defaultAddress.latitude,
+      longitude: defaultAddress.longitude
+    };
+
+    return calculateDistance(restaurantCoords, addressCoords);
+  } catch (error) {
+    console.error('Error calculating distance with default address:', error);
+    return null;
+  }
+}
+
+export async function isWithinDeliveryRadiusWithDefaultAddress(restaurant: Restaurant, userId: string): Promise<boolean> {
+  const distance = await calculateRestaurantDistanceWithDefaultAddress(restaurant, userId);
   if (distance === null) return false;
   return distance <= restaurant.delivery_radius;
 }
