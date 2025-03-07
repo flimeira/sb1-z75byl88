@@ -42,23 +42,16 @@ const BRAZILIAN_STATES = [
 interface Profile {
   id: string;
   user_id: string;
-  full_name: string | null;
+  name: string;
+  email: string;
+  phone: string | null;
   birth_date: string | null;
-  street: string | null;
-  number: string | null;
-  complement: string | null;
-  neighborhood: string | null;
-  city: string | null;
-  state: string | null;
-  postal_code: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  profile_image: string | null;
+  avatar_url: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export function Profile() {
+export default function Profile() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -66,9 +59,9 @@ export function Profile() {
   const [error, setError] = useState<string | null>(null);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
   });
   const [saving, setSaving] = useState(false);
   const [updatingCoordinates, setUpdatingCoordinates] = useState(false);
@@ -198,7 +191,7 @@ export function Profile() {
     }
   };
 
-  const handleProfileUpdate = async (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !profile) return;
 
@@ -209,15 +202,10 @@ export function Profile() {
       const { error } = await supabase
         .from('profiles')
         .update({
-          full_name: profile.full_name,
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
           birth_date: profile.birth_date,
-          street: profile.street,
-          number: profile.number,
-          complement: profile.complement,
-          neighborhood: profile.neighborhood,
-          city: profile.city,
-          state: profile.state,
-          postal_code: profile.postal_code,
         })
         .eq('user_id', user.id);
 
@@ -232,11 +220,11 @@ export function Profile() {
     }
   };
 
-  const handlePasswordUpdate = async (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
+    if (passwordData.new_password !== passwordData.confirm_password) {
       setError('As senhas não coincidem');
       return;
     }
@@ -246,16 +234,16 @@ export function Profile() {
       setError(null);
 
       const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword,
+        password: passwordData.new_password,
       });
 
       if (error) throw error;
 
       setShowPasswordForm(false);
       setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
+        current_password: '',
+        new_password: '',
+        confirm_password: '',
       });
       setError('Senha atualizada com sucesso!');
     } catch (error) {
@@ -312,275 +300,165 @@ export function Profile() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/dashboard')}
-        className="mb-6"
-      >
-        <ArrowLeft className="w-5 h-5 mr-2" />
-        Voltar para o Dashboard
-      </Button>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6">Meu Perfil</h1>
 
-      <h1 className="text-2xl font-bold mb-6">Meu Perfil</h1>
+        {error && (
+          <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6">
+            {error}
+          </div>
+        )}
 
-      {error && (
-        <div className="p-4 bg-red-50 text-red-600 rounded-md mb-6">
-          {error}
-        </div>
-      )}
+        {loading ? (
+          <div className="text-center py-8">Carregando...</div>
+        ) : profile ? (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Informações Pessoais</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSaveProfile} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nome
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.name}
+                      onChange={(e) =>
+                        setProfile(prev => prev ? { ...prev, name: e.target.value } : null)
+                      }
+                      className="w-full p-2 border rounded-md"
+                      required
+                    />
+                  </div>
 
-      <div className="space-y-6">
-        {/* Personal Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações Pessoais</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleProfileUpdate} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Nome Completo
-                </label>
-                <input
-                  type="text"
-                  value={profile?.full_name || ''}
-                  onChange={(e) =>
-                    setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={profile.email}
+                      onChange={(e) =>
+                        setProfile(prev => prev ? { ...prev, email: e.target.value } : null)
+                      }
+                      className="w-full p-2 border rounded-md"
+                      required
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Data de Nascimento
-                </label>
-                <input
-                  type="date"
-                  value={profile?.birth_date || ''}
-                  onChange={(e) =>
-                    setProfile(prev => prev ? { ...prev, birth_date: e.target.value } : null)
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Data de Nascimento
+                    </label>
+                    <input
+                      type="date"
+                      value={profile.birth_date || ''}
+                      onChange={(e) =>
+                        setProfile(prev => prev ? { ...prev, birth_date: e.target.value } : null)
+                      }
+                      className="w-full p-2 border rounded-md"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  CEP
-                </label>
-                <input
-                  type="text"
-                  value={profile?.postal_code || ''}
-                  onChange={handleCepChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="00000-000"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Telefone
+                    </label>
+                    <input
+                      type="tel"
+                      value={profile.phone || ''}
+                      onChange={(e) =>
+                        setProfile(prev => prev ? { ...prev, phone: e.target.value } : null)
+                      }
+                      className="w-full p-2 border rounded-md"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Rua
-                </label>
-                <input
-                  type="text"
-                  value={profile?.street || ''}
-                  onChange={(e) =>
-                    setProfile(prev => prev ? { ...prev, street: e.target.value } : null)
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={saving}>
+                      {saving ? 'Salvando...' : 'Salvar Alterações'}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Número
-                </label>
-                <input
-                  type="text"
-                  value={profile?.number || ''}
-                  onChange={(e) =>
-                    setProfile(prev => prev ? { ...prev, number: e.target.value } : null)
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Alterar Senha</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleChangePassword} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Senha Atual
+                    </label>
+                    <input
+                      type="password"
+                      value={passwordData.current_password}
+                      onChange={(e) =>
+                        setPasswordData(prev => ({
+                          ...prev,
+                          current_password: e.target.value
+                        }))
+                      }
+                      className="w-full p-2 border rounded-md"
+                      required
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Complemento
-                </label>
-                <input
-                  type="text"
-                  value={profile?.complement || ''}
-                  onChange={(e) =>
-                    setProfile(prev => prev ? { ...prev, complement: e.target.value } : null)
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nova Senha
+                    </label>
+                    <input
+                      type="password"
+                      value={passwordData.new_password}
+                      onChange={(e) =>
+                        setPasswordData(prev => ({
+                          ...prev,
+                          new_password: e.target.value
+                        }))
+                      }
+                      className="w-full p-2 border rounded-md"
+                      required
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Bairro
-                </label>
-                <input
-                  type="text"
-                  value={profile?.neighborhood || ''}
-                  onChange={(e) =>
-                    setProfile(prev => prev ? { ...prev, neighborhood: e.target.value } : null)
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirmar Nova Senha
+                    </label>
+                    <input
+                      type="password"
+                      value={passwordData.confirm_password}
+                      onChange={(e) =>
+                        setPasswordData(prev => ({
+                          ...prev,
+                          confirm_password: e.target.value
+                        }))
+                      }
+                      className="w-full p-2 border rounded-md"
+                      required
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Cidade
-                </label>
-                <input
-                  type="text"
-                  value={profile?.city || ''}
-                  onChange={(e) =>
-                    setProfile(prev => prev ? { ...prev, city: e.target.value } : null)
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Estado
-                </label>
-                <select
-                  value={profile?.state || ''}
-                  onChange={(e) =>
-                    setProfile(prev => prev ? { ...prev, state: e.target.value } : null)
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  <option value="">Selecione um estado</option>
-                  {BRAZILIAN_STATES.map((state) => (
-                    <option key={state.value} value={state.value}>
-                      {state.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end">
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Salvando...' : 'Salvar Alterações'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Password Update */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Alterar Senha</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!showPasswordForm ? (
-              <Button
-                variant="outline"
-                onClick={() => setShowPasswordForm(true)}
-              >
-                Alterar Senha
-              </Button>
-            ) : (
-              <form onSubmit={handlePasswordUpdate} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Senha Atual
-                  </label>
-                  <input
-                    type="password"
-                    value={passwordData.currentPassword}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        currentPassword: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Nova Senha
-                  </label>
-                  <input
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        newPassword: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Confirmar Nova Senha
-                  </label>
-                  <input
-                    type="password"
-                    value={passwordData.confirmPassword}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowPasswordForm(false);
-                      setPasswordData({
-                        currentPassword: '',
-                        newPassword: '',
-                        confirmPassword: '',
-                      });
-                    }}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? 'Salvando...' : 'Atualizar Senha'}
-                  </Button>
-                </div>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Address Management */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Endereços</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AddressManager />
-          </CardContent>
-        </Card>
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={saving}>
+                      {saving ? 'Alterando...' : 'Alterar Senha'}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <div className="text-center py-8">Perfil não encontrado</div>
+        )}
       </div>
     </div>
   );
