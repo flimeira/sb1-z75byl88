@@ -1,15 +1,18 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
-import { CheckoutPage } from './components/CheckoutPage';
+import { Profile } from './pages/Profile';
+import { Orders } from './pages/Orders';
+import { Points } from './pages/Points';
+import { Feedback } from './pages/Feedback';
+import { Notifications } from './pages/Notifications';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -19,60 +22,26 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-
-  return <>{children}</>;
+  return user ? <>{children}</> : <Navigate to="/login" />;
 }
 
-function AppContent() {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <main className="flex-1">
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/checkout"
-            element={
-              <PrivateRoute>
-                <CheckoutPage />
-              </PrivateRoute>
-            }
-          />
-        </Routes>
-      </main>
-    </div>
-  );
-}
-
-function App() {
+export function App() {
   return (
     <Router>
       <AuthProvider>
         <NotificationProvider>
-          <AppContent />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
+            <Route path="/points" element={<PrivateRoute><Points /></PrivateRoute>} />
+            <Route path="/feedback" element={<PrivateRoute><Feedback /></PrivateRoute>} />
+            <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
+          </Routes>
         </NotificationProvider>
       </AuthProvider>
     </Router>
   );
 }
-
-export default App;
