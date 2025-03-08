@@ -57,11 +57,13 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
   const [restaurantDeliveryStatus, setRestaurantDeliveryStatus] = useState<Record<string, boolean>>({});
+  const [defaultAddress, setDefaultAddress] = useState<Address | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchUserProfile();
       fetchFavoriteRestaurants();
+      fetchDefaultAddress();
     }
     fetchRestaurantTypes();
   }, [user]);
@@ -538,6 +540,24 @@ export function Dashboard() {
     }
   };
 
+  const fetchDefaultAddress = async () => {
+    if (!supabase || !user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_default', true)
+        .single();
+
+      if (error) throw error;
+      setDefaultAddress(data);
+    } catch (error) {
+      console.error('Error fetching default address:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -642,40 +662,31 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              {selectedRestaurant ? (
-                <div className="flex items-center">
-                  <button
-                    onClick={handleBackClick}
-                    className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
-                  >
-                    <ArrowLeft className="w-5 h-5 mr-2" />
-                    Voltar para Restaurantes
-                  </button>
-                  <button
-                    onClick={() => toggleFavorite(selectedRestaurant.id)}
-                    className="p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    aria-label={favoriteRestaurants.has(selectedRestaurant.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                  >
-                    <Heart
-                      className={`w-6 h-6 ${
-                        favoriteRestaurants.has(selectedRestaurant.id)
-                          ? 'text-red-500 fill-current'
-                          : 'text-gray-400'
-                      }`}
-                    />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center">
-                  <img src={logoUrl} alt="Logo" className="h-8 w-auto mr-2" />
-                  <h1 className="text-xl font-semibold text-gray-900">AmericanaFood</h1>
-                </div>
-              )}
+      <div className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4">
+          <div className="h-16 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 hover:bg-gray-100 rounded-lg md:hidden"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-2">
+                <img src={logoUrl} alt="Logo" className="h-8 w-8 rounded" />
+                <h1 className="text-xl font-bold">AmericanaFood</h1>
+                {defaultAddress && (
+                  <div className="hidden md:flex items-center gap-2 ml-4 text-gray-600">
+                    <MapPin className="w-4 h-4" />
+                    <span className="text-sm truncate max-w-[300px]">
+                      {defaultAddress.street}, {defaultAddress.number}
+                      {defaultAddress.complement ? ` - ${defaultAddress.complement}` : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
+            
             <div className="flex items-center">
               <button
                 onClick={() => setIsSidebarOpen(true)}
@@ -686,7 +697,7 @@ export function Dashboard() {
             </div>
           </div>
         </div>
-      </nav>
+      </div>
 
       <Sidebar
         isOpen={isSidebarOpen}
