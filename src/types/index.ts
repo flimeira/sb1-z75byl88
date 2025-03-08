@@ -8,9 +8,9 @@ export interface Address {
   city: string;
   state: string;
   zip_code: string;
-  latitude?: number;
-  longitude?: number;
+  latitude: number;
+  longitude: number;
   is_default: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 } 
