@@ -76,12 +76,10 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
         }
 
         try {
-          const distance = await calculateDistance({
-            lat1: restaurant.latitude,
-            lon1: restaurant.longitude,
-            lat2: address.latitude,
-            lon2: address.longitude
-          });
+          const distance = calculateDistance(
+            { lat: restaurant.latitude, lon: restaurant.longitude },
+            { lat: address.latitude, lon: address.longitude }
+          );
           inRangeStatus[address.id] = distance <= restaurant.delivery_radius;
         } catch (distanceError) {
           console.error(`Erro ao calcular distância para endereço ${address.id}:`, distanceError);
