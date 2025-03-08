@@ -145,6 +145,27 @@ export function AddressManager() {
       setLoading(true);
       setError(null);
 
+      // Se este endereço será padrão, primeiro verificamos se já existe um endereço padrão
+      if (formData.is_default) {
+        const { data: existingDefault } = await supabase
+          .from('user_addresses')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_default', true)
+          .single();
+
+        // Se já existe um endereço padrão e não estamos editando ele,
+        // removemos o status de padrão do endereço existente
+        if (existingDefault && (!editingAddress || existingDefault.id !== editingAddress.id)) {
+          const { error: updateDefaultError } = await supabase
+            .from('user_addresses')
+            .update({ is_default: false })
+            .eq('id', existingDefault.id);
+
+          if (updateDefaultError) throw updateDefaultError;
+        }
+      }
+
       let addressData = {
         user_id: user.id,
         ...formData
@@ -223,15 +244,6 @@ export function AddressManager() {
         throw error;
       }
 
-      // Se este endereço for padrão, remover o padrão dos outros
-      if (formData.is_default) {
-        await supabase
-          .from('user_addresses')
-          .update({ is_default: false })
-          .eq('user_id', user.id)
-          .neq('id', editingAddress?.id || '');
-      }
-
       setFormData({
         street: '',
         number: '',
@@ -249,8 +261,8 @@ export function AddressManager() {
       setShowForm(false);
       await fetchAddresses();
     } catch (error) {
-      console.error('Error saving address:', error);
-      setError('Erro ao salvar endereço. Por favor, tente novamente.');
+      console.error('Erro ao salvar endereço:', error);
+      setError('Erro ao salvar endereço');
     } finally {
       setLoading(false);
     }
@@ -280,31 +292,33 @@ export function AddressManager() {
     }
   };
 
-  const handleSetDefault = async (id: string) => {
+  const handleSetDefault = async (address: Address) => {
     if (!supabase || !user) return;
-
+    
     try {
       setLoading(true);
       setError(null);
 
-      // Primeiro, remover o padrão de todos os endereços
-      await supabase
+      // Primeiro, remove o status de padrão de todos os endereços
+      const { error: updateOthersError } = await supabase
         .from('user_addresses')
         .update({ is_default: false })
         .eq('user_id', user.id);
 
-      // Depois, definir o novo endereço como padrão
-      const { error } = await supabase
+      if (updateOthersError) throw updateOthersError;
+
+      // Depois, define o endereço selecionado como padrão
+      const { error: updateCurrentError } = await supabase
         .from('user_addresses')
         .update({ is_default: true })
-        .eq('id', id)
+        .eq('id', address.id)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (updateCurrentError) throw updateCurrentError;
 
       await fetchAddresses();
     } catch (error) {
-      console.error('Error setting default address:', error);
+      console.error('Erro ao definir endereço padrão:', error);
       setError('Erro ao definir endereço padrão');
     } finally {
       setLoading(false);
@@ -329,237 +343,257 @@ export function AddressManager() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Meus Endereços</h2>
-        <Button
-          onClick={() => {
-            setEditingAddress(null);
-            setFormData({
-              street: '',
-              number: '',
-              complement: '',
-              neighborhood: '',
-              city: '',
-              state: '',
-              zip_code: '',
-              is_default: false,
-              latitude: 0,
-              longitude: 0
-            });
-            setShowForm(true);
-          }}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Endereço
-        </Button>
-      </div>
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold flex items-center justify-between">
+          <span>Meus Endereços</span>
+          <Button
+            onClick={() => {
+              setEditingAddress(null);
+              setFormData({
+                street: '',
+                number: '',
+                complement: '',
+                neighborhood: '',
+                city: '',
+                state: '',
+                zip_code: '',
+                is_default: false,
+                latitude: 0,
+                longitude: 0
+              });
+              setShowForm(true);
+            }}
+            variant="outline"
+            size="sm"
+            className="flex items-center"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar Endereço
+          </Button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4">
+            {error}
+          </div>
+        )}
 
-      {error && (
-        <div className="p-4 bg-red-50 text-red-600 rounded-md">
-          {error}
-        </div>
-      )}
-
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {editingAddress ? 'Editar Endereço' : 'Novo Endereço'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSaveAddress} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Rua
-                  </label>
-                  <input
-                    type="text"
-                    name="street"
-                    value={formData.street}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full p-2 border rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Número
-                  </label>
-                  <input
-                    type="text"
-                    name="number"
-                    value={formData.number}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full p-2 border rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Complemento
-                  </label>
-                  <input
-                    type="text"
-                    name="complement"
-                    value={formData.complement}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Bairro
-                  </label>
-                  <input
-                    type="text"
-                    name="neighborhood"
-                    value={formData.neighborhood}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full p-2 border rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cidade
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full p-2 border rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Estado
-                  </label>
-                  <input
-                    type="text"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full p-2 border rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    CEP
-                  </label>
-                  <input
-                    type="text"
-                    name="zip_code"
-                    value={formData.zip_code}
-                    onChange={handleCepChange}
-                    required
-                    className="w-full p-2 border rounded-md"
-                  />
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="is_default"
-                    checked={formData.is_default}
-                    onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label className="ml-2 block text-sm text-gray-700">
-                    Definir como endereço padrão
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setShowForm(false);
-                    setEditingAddress(null);
-                  }}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Salvando...' : editingAddress ? 'Atualizar' : 'Salvar'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-2">
         {loading ? (
-          <div className="text-center py-4">Carregando endereços...</div>
-        ) : addresses.length > 0 ? (
-          addresses.map((address) => (
-            <Card key={address.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3">
-                    <MapPin className="w-5 h-5 text-gray-400 mt-1" />
-                    <div>
-                      <div className="flex items-center">
-                        <span className="font-medium text-gray-900">
-                          {address.street}, {address.number}
-                        </span>
-                        {address.is_default && (
-                          <span className="ml-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                            Padrão
-                          </span>
-                        )}
-                      </div>
-                      {address.complement && (
-                        <p className="text-gray-600">{address.complement}</p>
-                      )}
-                      <p className="text-gray-600">
-                        {address.neighborhood}, {address.city} - {address.state}
-                      </p>
-                      <p className="text-gray-600">CEP: {address.zip_code}</p>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(address)}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteAddress(address.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                    {!address.is_default && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSetDefault(address.id)}
-                      >
-                        Definir como Padrão
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
+          <div className="text-center py-4">Carregando...</div>
+        ) : addresses.length === 0 ? (
           <div className="text-center py-4 text-gray-500">
             Nenhum endereço cadastrado
           </div>
+        ) : (
+          <div className="space-y-4">
+            {addresses.map((address) => (
+              <div
+                key={address.id}
+                className="flex items-start justify-between p-4 border rounded-lg"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center mb-2">
+                    <MapPin className="w-4 h-4 text-gray-400 mr-2" />
+                    <span className="font-medium">
+                      {address.street}, {address.number}
+                      {address.complement && ` - ${address.complement}`}
+                    </span>
+                    {address.is_default && (
+                      <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full">
+                        Padrão
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {address.neighborhood}, {address.city} - {address.state}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    CEP: {address.zip_code}
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {!address.is_default && (
+                    <Button
+                      onClick={() => handleSetDefault(address)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <Star className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => {
+                      setEditingAddress(address);
+                      setFormData({
+                        street: address.street,
+                        number: address.number,
+                        complement: address.complement || '',
+                        neighborhood: address.neighborhood,
+                        city: address.city,
+                        state: address.state,
+                        zip_code: address.zip_code,
+                        is_default: address.is_default,
+                        latitude: address.latitude || 0,
+                        longitude: address.longitude || 0
+                      });
+                      setShowForm(true);
+                    }}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    onClick={() => handleDeleteAddress(address.id)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
-      </div>
-    </div>
+
+        {showForm && (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {editingAddress ? 'Editar Endereço' : 'Novo Endereço'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSaveAddress} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Rua
+                    </label>
+                    <input
+                      type="text"
+                      name="street"
+                      value={formData.street}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full p-2 border rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Número
+                    </label>
+                    <input
+                      type="text"
+                      name="number"
+                      value={formData.number}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full p-2 border rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Complemento
+                    </label>
+                    <input
+                      type="text"
+                      name="complement"
+                      value={formData.complement}
+                      onChange={handleInputChange}
+                      className="w-full p-2 border rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Bairro
+                    </label>
+                    <input
+                      type="text"
+                      name="neighborhood"
+                      value={formData.neighborhood}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full p-2 border rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cidade
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full p-2 border rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Estado
+                    </label>
+                    <input
+                      type="text"
+                      name="state"
+                      value={formData.state}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full p-2 border rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      CEP
+                    </label>
+                    <input
+                      type="text"
+                      name="zip_code"
+                      value={formData.zip_code}
+                      onChange={handleCepChange}
+                      required
+                      className="w-full p-2 border rounded-md"
+                    />
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="is_default"
+                      checked={formData.is_default}
+                      onChange={handleInputChange}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label className="ml-2 block text-sm text-gray-700">
+                      Definir como endereço padrão
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowForm(false);
+                      setEditingAddress(null);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? 'Salvando...' : editingAddress ? 'Atualizar' : 'Salvar'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+      </CardContent>
+    </Card>
   );
 } 
