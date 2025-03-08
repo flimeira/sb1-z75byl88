@@ -1,10 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { NotificationProvider } from './contexts/NotificationContext';
+import { useAuth } from './contexts/AuthContext';
 import { Dashboard } from './pages/Dashboard';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
+import { SignIn } from './pages/SignIn';
+import { SignUp } from './pages/SignUp';
 import { Profile } from './pages/Profile';
 import { Orders } from './pages/Orders';
 import { Points } from './pages/Points';
@@ -12,36 +11,23 @@ import { Feedback } from './pages/Feedback';
 import { Notifications } from './pages/Notifications';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">Carregando...</div>
-      </div>
-    );
-  }
-
-  return user ? <>{children}</> : <Navigate to="/login" />;
+  const { user } = useAuth();
+  return user ? <>{children}</> : <Navigate to="/signin" />;
 }
 
 export function App() {
   return (
     <Router>
-      <AuthProvider>
-        <NotificationProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-            <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
-            <Route path="/points" element={<PrivateRoute><Points /></PrivateRoute>} />
-            <Route path="/feedback" element={<PrivateRoute><Feedback /></PrivateRoute>} />
-            <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
-          </Routes>
-        </NotificationProvider>
-      </AuthProvider>
+      <Routes>
+        <Route path="/signin" element={<SignIn />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
+        <Route path="/points" element={<PrivateRoute><Points /></PrivateRoute>} />
+        <Route path="/feedback" element={<PrivateRoute><Feedback /></PrivateRoute>} />
+        <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
+      </Routes>
     </Router>
   );
 }
