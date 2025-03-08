@@ -3,13 +3,13 @@ import { ArrowLeft, Star, Clock, CreditCard, Banknote, MapPin, ChevronRight, Ale
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Address } from '../types';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Listbox, ListboxContent, ListboxItem, ListboxTrigger, ListboxValue } from './ui/listbox';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Listbox, ListboxContent, ListboxItem, ListboxTrigger, ListboxValue } from '../components/ui/listbox';
 import { calculateDistance } from '../utils/distance';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Checkbox } from './ui/checkbox';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Checkbox } from '../components/ui/checkbox';
 
 interface Restaurant {
   id: string;
