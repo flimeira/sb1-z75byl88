@@ -6,7 +6,7 @@ import { Address } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Listbox, ListboxContent, ListboxItem, ListboxTrigger, ListboxValue } from './ui/listbox';
-import { isWithinDeliveryRadiusWithDefaultAddress } from '../utils/distance';
+import { calculateDistance } from '../utils/distance';
 
 interface Restaurant {
   id: string;
@@ -17,6 +17,8 @@ interface Restaurant {
   deliveryTime: string;
   delivery_fee: number;
   delivery_radius: number;
+  latitude: number;
+  longitude: number;
 }
 
 interface CheckoutPageProps {
@@ -65,8 +67,13 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
       // Verificar quais endereços estão dentro do raio de entrega
       const inRangeStatus: Record<string, boolean> = {};
       for (const address of data || []) {
-        const isInRange = await isWithinDeliveryRadiusWithDefaultAddress(restaurant, user.id);
-        inRangeStatus[address.id] = isInRange;
+        const distance = await calculateDistance({
+          lat1: restaurant.latitude,
+          lon1: restaurant.longitude,
+          lat2: address.latitude,
+          lon2: address.longitude
+        });
+        inRangeStatus[address.id] = distance <= restaurant.delivery_radius;
       }
       setAddressesInRange(inRangeStatus);
       
@@ -77,6 +84,8 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
         setSelectedAddress(defaultAddress.id);
       } else if (validAddresses.length > 0) {
         setSelectedAddress(validAddresses[0].id);
+      } else {
+        setSelectedAddress(null);
       }
     } catch (error) {
       console.error('Error fetching addresses:', error);
