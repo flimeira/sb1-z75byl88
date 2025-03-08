@@ -2,8 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { Dashboard } from './pages/Dashboard';
-import { SignIn } from './pages/SignIn';
-import { SignUp } from './pages/SignUp';
+import { Login } from './pages/Login';
+import { Register } from './pages/Register';
 import { Profile } from './pages/Profile';
 import { Orders } from './pages/Orders';
 import { Points } from './pages/Points';
@@ -12,15 +12,15 @@ import { Notifications } from './pages/Notifications';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  return user ? <>{children}</> : <Navigate to="/signin" />;
+  return user ? <>{children}</> : <Navigate to="/login" />;
 }
 
 export function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/signup" element={<SignUp />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
