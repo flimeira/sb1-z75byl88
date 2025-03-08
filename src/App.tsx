@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
-import { Header } from './components/Header';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -38,8 +37,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header onSignOut={handleSignOut} />
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1">
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
