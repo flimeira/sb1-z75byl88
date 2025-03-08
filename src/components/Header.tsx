@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, MapPin, ChevronDown } from 'lucide-react';
+import { Menu, MapPin, ChevronDown, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Address } from '../types';
@@ -11,7 +11,11 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
-export function Header() {
+interface HeaderProps {
+  onSignOut: () => void;
+}
+
+export function Header({ onSignOut }: HeaderProps) {
   const { user } = useAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
@@ -96,47 +100,58 @@ export function Header() {
         </div>
 
         {user && (
-          <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-gray-500" />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-1">
-                  {loading ? (
-                    <span className="text-gray-500">Carregando...</span>
-                  ) : selectedAddress ? (
-                    <>
-                      <span className="text-sm font-medium truncate max-w-[200px]">
-                        {getAddressDisplay(selectedAddress)}
-                      </span>
-                      <ChevronDown className="h-4 w-4" />
-                    </>
-                  ) : (
-                    <span className="text-gray-500">Selecione um endereço</span>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[300px]">
-                {addresses.map((address) => (
-                  <DropdownMenuItem
-                    key={address.id}
-                    onClick={() => handleAddressSelect(address)}
-                    className="flex flex-col items-start gap-1"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{getAddressDisplay(address)}</span>
-                      {address.is_default && (
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                          Padrão
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-gray-500" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-1">
+                    {loading ? (
+                      <span className="text-gray-500">Carregando...</span>
+                    ) : selectedAddress ? (
+                      <>
+                        <span className="text-sm font-medium truncate max-w-[200px]">
+                          {getAddressDisplay(selectedAddress)}
                         </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-gray-500">
-                      {address.neighborhood}, {address.city} - {address.state}
-                    </span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                        <ChevronDown className="h-4 w-4" />
+                      </>
+                    ) : (
+                      <span className="text-gray-500">Selecione um endereço</span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[300px]">
+                  {addresses.map((address) => (
+                    <DropdownMenuItem
+                      key={address.id}
+                      onClick={() => handleAddressSelect(address)}
+                      className="flex flex-col items-start gap-1"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{getAddressDisplay(address)}</span>
+                        {address.is_default && (
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                            Padrão
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {address.neighborhood}, {address.city} - {address.state}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onSignOut}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         )}
       </div>
