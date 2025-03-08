@@ -67,13 +67,26 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
       // Verificar quais endereços estão dentro do raio de entrega
       const inRangeStatus: Record<string, boolean> = {};
       for (const address of data || []) {
-        const distance = await calculateDistance({
-          lat1: restaurant.latitude,
-          lon1: restaurant.longitude,
-          lat2: address.latitude,
-          lon2: address.longitude
-        });
-        inRangeStatus[address.id] = distance <= restaurant.delivery_radius;
+        // Verificar se o endereço tem coordenadas
+        if (address.latitude === null || address.longitude === null || 
+            address.latitude === undefined || address.longitude === undefined) {
+          console.warn(`Endereço ${address.id} não possui coordenadas definidas`);
+          inRangeStatus[address.id] = false;
+          continue;
+        }
+
+        try {
+          const distance = await calculateDistance({
+            lat1: restaurant.latitude,
+            lon1: restaurant.longitude,
+            lat2: address.latitude,
+            lon2: address.longitude
+          });
+          inRangeStatus[address.id] = distance <= restaurant.delivery_radius;
+        } catch (distanceError) {
+          console.error(`Erro ao calcular distância para endereço ${address.id}:`, distanceError);
+          inRangeStatus[address.id] = false;
+        }
       }
       setAddressesInRange(inRangeStatus);
       
