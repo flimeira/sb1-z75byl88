@@ -328,7 +328,7 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                     className="flex items-center gap-2"
                   >
                     <Plus className="w-4 h-4" />
-                    Novo Endereço
+                    {showNewAddressForm ? 'Cancelar' : 'Novo Endereço'}
                   </Button>
                 </div>
               </CardHeader>
