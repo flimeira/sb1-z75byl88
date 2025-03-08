@@ -470,6 +470,27 @@ export function AddressManager() {
             <CardContent>
               <form onSubmit={handleSaveAddress} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      CEP
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        name="zip_code"
+                        value={formData.zip_code}
+                        onChange={handleCepChange}
+                        required
+                        placeholder="00000-000"
+                        className="w-full p-2 border rounded-md"
+                      />
+                      {loadingCep && (
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                          <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Rua
@@ -506,6 +527,7 @@ export function AddressManager() {
                       value={formData.complement}
                       onChange={handleInputChange}
                       className="w-full p-2 border rounded-md"
+                      placeholder="Opcional"
                     />
                   </div>
                   <div>
@@ -538,39 +560,34 @@ export function AddressManager() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Estado
                     </label>
-                    <input
-                      type="text"
+                    <select
                       name="state"
                       value={formData.state}
                       onChange={handleInputChange}
                       required
-                      className="w-full p-2 border rounded-md"
-                    />
+                      className="w-full p-2 border rounded-md bg-white"
+                    >
+                      <option value="">Selecione um estado</option>
+                      {BRAZILIAN_STATES.map(state => (
+                        <option key={state.value} value={state.value}>
+                          {state.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      CEP
-                    </label>
-                    <input
-                      type="text"
-                      name="zip_code"
-                      value={formData.zip_code}
-                      onChange={handleCepChange}
-                      required
-                      className="w-full p-2 border rounded-md"
-                    />
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="is_default"
-                      checked={formData.is_default}
-                      onChange={handleInputChange}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label className="ml-2 block text-sm text-gray-700">
-                      Definir como endereço padrão
-                    </label>
+                  <div className="md:col-span-2">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="is_default"
+                        checked={formData.is_default}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label className="ml-2 block text-sm text-gray-700">
+                        Definir como endereço padrão
+                      </label>
+                    </div>
                   </div>
                 </div>
 
