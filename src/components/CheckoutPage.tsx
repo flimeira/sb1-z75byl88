@@ -59,6 +59,7 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
   });
   const [newAddressLoading, setNewAddressLoading] = useState(false);
   const [newAddressError, setNewAddressError] = useState<string | null>(null);
+  const [cepLoading, setCepLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -219,6 +220,76 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
     }
   };
 
+  const handleCepSearch = async (cep: string) => {
+    if (!cep || cep.length !== 8) return;
+
+    setCepLoading(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await response.json();
+
+      if (data.erro) {
+        throw new Error('CEP não encontrado');
+      }
+
+      // Atualizar os campos do endereço
+      setNewAddress(prev => ({
+        ...prev,
+        street: data.logradouro,
+        neighborhood: data.bairro,
+        city: data.localidade,
+        state: data.uf,
+        zip_code: cep
+      }));
+
+      // Buscar coordenadas do endereço
+      const geocodingResponse = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          `${data.logradouro}, ${data.localidade}, ${data.uf}, Brasil`
+        )}`
+      );
+      const geocodingData = await geocodingResponse.json();
+
+      if (geocodingData && geocodingData[0]) {
+        const { lat, lon } = geocodingData[0];
+        
+        // Calcular distância do restaurante
+        const distance = calculateDistance(
+          { lat: restaurant.latitude, lon: restaurant.longitude },
+          { lat: parseFloat(lat), lon: parseFloat(lon) }
+        );
+
+        if (distance > restaurant.delivery_radius) {
+          setNewAddressError('Este endereço está fora da área de entrega do restaurante');
+          return;
+        }
+
+        // Atualizar coordenadas
+        setNewAddress(prev => ({
+          ...prev,
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lon)
+        }));
+      } else {
+        setNewAddressError('Não foi possível encontrar as coordenadas deste endereço');
+      }
+    } catch (error) {
+      console.error('Error searching CEP:', error);
+      setNewAddressError(error instanceof Error ? error.message : 'Erro ao buscar CEP');
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cep = e.target.value.replace(/\D/g, '');
+    setNewAddress(prev => ({ ...prev, zip_code: cep }));
+
+    if (cep.length === 8) {
+      handleCepSearch(cep);
+    }
+  };
+
   if (!restaurant) {
     return null;
   }
@@ -343,13 +414,21 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
                         <Label htmlFor="zip_code">CEP</Label>
-                        <Input
-                          id="zip_code"
-                          value={newAddress.zip_code}
-                          onChange={(e) => setNewAddress(prev => ({ ...prev, zip_code: e.target.value }))}
-                          placeholder="00000-000"
-                          maxLength={9}
-                        />
+                        <div className="relative">
+                          <Input
+                            id="zip_code"
+                            value={newAddress.zip_code}
+                            onChange={handleCepChange}
+                            placeholder="00000-000"
+                            maxLength={9}
+                            disabled={cepLoading}
+                          />
+                          {cepLoading && (
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="col-span-2">
                         <Label htmlFor="street">Rua</Label>
@@ -429,7 +508,7 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                       </Button>
                       <Button
                         onClick={handleSaveNewAddress}
-                        disabled={newAddressLoading}
+                        disabled={newAddressLoading || !newAddress.latitude || !newAddress.longitude}
                       >
                         {newAddressLoading ? 'Salvando...' : 'Salvar Endereço'}
                       </Button>
