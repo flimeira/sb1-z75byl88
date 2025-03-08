@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Star, Clock, CreditCard, Banknote, MapPin, ChevronRight, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Star, Clock, CreditCard, Banknote, MapPin, ChevronRight, AlertCircle, Plus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Address } from '../types';
@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Listbox, ListboxContent, ListboxItem, ListboxTrigger, ListboxValue } from './ui/listbox';
 import { calculateDistance } from '../utils/distance';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Checkbox } from './ui/checkbox';
 
 interface Restaurant {
   id: string;
@@ -43,6 +46,19 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addressesInRange, setAddressesInRange] = useState<Record<string, boolean>>({});
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+  const [newAddress, setNewAddress] = useState<Partial<Address>>({
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    zip_code: '',
+    is_default: false
+  });
+  const [newAddressLoading, setNewAddressLoading] = useState(false);
+  const [newAddressError, setNewAddressError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -129,6 +145,78 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
 
   const getAddressDisplay = (address: Address) => {
     return `${address.street}, ${address.number}${address.complement ? ` - ${address.complement}` : ''}`;
+  };
+
+  const handleSaveNewAddress = async () => {
+    if (!user) return;
+
+    setNewAddressLoading(true);
+    setNewAddressError(null);
+
+    try {
+      // Primeiro, buscar as coordenadas do CEP
+      const response = await fetch(`https://viacep.com.br/ws/${newAddress.zip_code}/json/`);
+      const data = await response.json();
+
+      if (data.erro) {
+        throw new Error('CEP não encontrado');
+      }
+
+      // Calcular a distância entre o restaurante e o novo endereço
+      const distance = calculateDistance(
+        { lat: restaurant.latitude, lon: restaurant.longitude },
+        { lat: parseFloat(data.lat), lon: parseFloat(data.lng) }
+      );
+
+      if (distance > restaurant.delivery_radius) {
+        throw new Error('Este endereço está fora da área de entrega do restaurante');
+      }
+
+      // Se for endereço padrão, remover o padrão dos outros endereços
+      if (newAddress.is_default) {
+        await supabase
+          .from('user_addresses')
+          .update({ is_default: false })
+          .eq('user_id', user.id);
+      }
+
+      // Salvar o novo endereço
+      const { data: savedAddress, error: saveError } = await supabase
+        .from('user_addresses')
+        .insert([
+          {
+            ...newAddress,
+            user_id: user.id,
+            latitude: parseFloat(data.lat),
+            longitude: parseFloat(data.lng)
+          }
+        ])
+        .select()
+        .single();
+
+      if (saveError) throw saveError;
+
+      // Atualizar a lista de endereços
+      setAddresses(prev => [...prev, savedAddress]);
+      setAddressesInRange(prev => ({ ...prev, [savedAddress.id]: true }));
+      setSelectedAddress(savedAddress.id);
+      setShowNewAddressForm(false);
+      setNewAddress({
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: '',
+        state: '',
+        zip_code: '',
+        is_default: false
+      });
+    } catch (error) {
+      console.error('Error saving new address:', error);
+      setNewAddressError(error instanceof Error ? error.message : 'Erro ao salvar endereço');
+    } finally {
+      setNewAddressLoading(false);
+    }
   };
 
   if (!restaurant) {
@@ -231,12 +319,121 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
           {deliveryType === 'delivery' && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Endereço de Entrega</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">Endereço de Entrega</CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowNewAddressForm(!showNewAddressForm)}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Novo Endereço
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {error && (
                   <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-md">
                     {error}
+                  </div>
+                )}
+                {showNewAddressForm && (
+                  <div className="mb-6 p-4 border rounded-lg space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2">
+                        <Label htmlFor="zip_code">CEP</Label>
+                        <Input
+                          id="zip_code"
+                          value={newAddress.zip_code}
+                          onChange={(e) => setNewAddress(prev => ({ ...prev, zip_code: e.target.value }))}
+                          placeholder="00000-000"
+                          maxLength={9}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label htmlFor="street">Rua</Label>
+                        <Input
+                          id="street"
+                          value={newAddress.street}
+                          onChange={(e) => setNewAddress(prev => ({ ...prev, street: e.target.value }))}
+                          placeholder="Nome da rua"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="number">Número</Label>
+                        <Input
+                          id="number"
+                          value={newAddress.number}
+                          onChange={(e) => setNewAddress(prev => ({ ...prev, number: e.target.value }))}
+                          placeholder="Número"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="complement">Complemento</Label>
+                        <Input
+                          id="complement"
+                          value={newAddress.complement}
+                          onChange={(e) => setNewAddress(prev => ({ ...prev, complement: e.target.value }))}
+                          placeholder="Opcional"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="neighborhood">Bairro</Label>
+                        <Input
+                          id="neighborhood"
+                          value={newAddress.neighborhood}
+                          onChange={(e) => setNewAddress(prev => ({ ...prev, neighborhood: e.target.value }))}
+                          placeholder="Nome do bairro"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="city">Cidade</Label>
+                        <Input
+                          id="city"
+                          value={newAddress.city}
+                          onChange={(e) => setNewAddress(prev => ({ ...prev, city: e.target.value }))}
+                          placeholder="Nome da cidade"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="state">Estado</Label>
+                        <Input
+                          id="state"
+                          value={newAddress.state}
+                          onChange={(e) => setNewAddress(prev => ({ ...prev, state: e.target.value }))}
+                          placeholder="UF"
+                          maxLength={2}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="is_default"
+                        checked={newAddress.is_default}
+                        onCheckedChange={(checked) => setNewAddress(prev => ({ ...prev, is_default: checked as boolean }))}
+                      />
+                      <Label htmlFor="is_default">Definir como endereço padrão</Label>
+                    </div>
+                    {newAddressError && (
+                      <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">
+                        {newAddressError}
+                      </div>
+                    )}
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowNewAddressForm(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={handleSaveNewAddress}
+                        disabled={newAddressLoading}
+                      >
+                        {newAddressLoading ? 'Salvando...' : 'Salvar Endereço'}
+                      </Button>
+                    </div>
                   </div>
                 )}
                 {loading ? (
