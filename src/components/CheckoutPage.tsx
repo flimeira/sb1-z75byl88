@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Star, Clock, CreditCard, Banknote, MapPin, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Star, Clock, CreditCard, Banknote, MapPin, ChevronRight, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Address } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Listbox, ListboxContent, ListboxItem, ListboxTrigger, ListboxValue } from './ui/listbox';
+import { isWithinDeliveryRadiusWithDefaultAddress } from '../utils/distance';
 
 interface Restaurant {
   id: string;
@@ -15,6 +16,7 @@ interface Restaurant {
   tipo: string;
   deliveryTime: string;
   delivery_fee: number;
+  delivery_radius: number;
 }
 
 interface CheckoutPageProps {
@@ -38,6 +40,7 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [addressesInRange, setAddressesInRange] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (user) {
@@ -59,12 +62,21 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
 
       setAddresses(data || []);
       
-      // Selecionar o endereço padrão se existir
-      const defaultAddress = data?.find(addr => addr.is_default);
+      // Verificar quais endereços estão dentro do raio de entrega
+      const inRangeStatus: Record<string, boolean> = {};
+      for (const address of data || []) {
+        const isInRange = await isWithinDeliveryRadiusWithDefaultAddress(restaurant, user.id);
+        inRangeStatus[address.id] = isInRange;
+      }
+      setAddressesInRange(inRangeStatus);
+      
+      // Selecionar o primeiro endereço válido dentro do raio de entrega
+      const validAddresses = data?.filter(addr => inRangeStatus[addr.id]) || [];
+      const defaultAddress = validAddresses.find(addr => addr.is_default);
       if (defaultAddress) {
         setSelectedAddress(defaultAddress.id);
-      } else if (data && data.length > 0) {
-        setSelectedAddress(data[0].id);
+      } else if (validAddresses.length > 0) {
+        setSelectedAddress(validAddresses[0].id);
       }
     } catch (error) {
       console.error('Error fetching addresses:', error);
@@ -210,60 +222,77 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                 {loading ? (
                   <div className="p-4 text-center text-gray-500">Carregando endereços...</div>
                 ) : addresses.length > 0 ? (
-                  <div className="relative">
-                    <Listbox value={selectedAddress || ''} onValueChange={setSelectedAddress}>
-                      <ListboxTrigger className="w-full h-auto py-3 px-4 border rounded-lg bg-white">
-                        <ListboxValue placeholder="Selecione um endereço" />
-                      </ListboxTrigger>
-                      <ListboxContent 
-                        className="w-full bg-white border rounded-lg shadow-lg"
-                        position="popper"
-                        sideOffset={5}
-                        align="start"
-                        side="bottom"
-                      >
-                        <div className="max-h-[400px] overflow-y-auto">
-                          {addresses.map((address) => (
-                            <ListboxItem
-                              key={address.id}
-                              value={address.id}
-                              className="py-3 px-4 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-                            >
-                              <div className="flex items-start">
-                                <div className="flex-1">
-                                  <div className="font-medium">
-                                    {getAddressDisplay(address)}
+                  <>
+                    <div className="relative">
+                      <Listbox value={selectedAddress || ''} onValueChange={setSelectedAddress}>
+                        <ListboxTrigger className="w-full h-auto py-3 px-4 border rounded-lg bg-white">
+                          <ListboxValue placeholder="Selecione um endereço" />
+                        </ListboxTrigger>
+                        <ListboxContent 
+                          className="w-full bg-white border rounded-lg shadow-lg"
+                          position="popper"
+                          sideOffset={5}
+                          align="start"
+                          side="bottom"
+                        >
+                          <div className="max-h-[400px] overflow-y-auto">
+                            {addresses.map((address) => {
+                              const isInRange = addressesInRange[address.id];
+                              return (
+                                <ListboxItem
+                                  key={address.id}
+                                  value={address.id}
+                                  className={`py-3 px-4 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 ${
+                                    !isInRange ? 'opacity-50' : ''
+                                  }`}
+                                  disabled={!isInRange}
+                                >
+                                  <div className="flex items-start">
+                                    <div className="flex-1">
+                                      <div className="font-medium">
+                                        {getAddressDisplay(address)}
+                                      </div>
+                                      <div className="text-sm text-gray-600 mt-1">
+                                        {address.neighborhood}, {address.city} - {address.state}
+                                      </div>
+                                      <div className="text-sm text-gray-600">
+                                        CEP: {address.zip_code}
+                                      </div>
+                                      <div className="flex items-center gap-2 mt-2">
+                                        {address.is_default && (
+                                          <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                                            Endereço padrão
+                                          </span>
+                                        )}
+                                        {!isInRange && (
+                                          <span className="inline-block px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">
+                                            Fora da área de entrega
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-gray-400 ml-4 flex-shrink-0" />
                                   </div>
-                                  <div className="text-sm text-gray-600 mt-1">
-                                    {address.neighborhood}, {address.city} - {address.state}
-                                  </div>
-                                  <div className="text-sm text-gray-600">
-                                    CEP: {address.zip_code}
-                                  </div>
-                                  {address.is_default && (
-                                    <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                                      Endereço padrão
-                                    </span>
-                                  )}
-                                </div>
-                                <ChevronRight className="w-5 h-5 text-gray-400 ml-4 flex-shrink-0" />
-                              </div>
-                            </ListboxItem>
-                          ))}
-                        </div>
-                      </ListboxContent>
-                    </Listbox>
-                  </div>
+                                </ListboxItem>
+                              );
+                            })}
+                          </div>
+                        </ListboxContent>
+                      </Listbox>
+                    </div>
+                    {addresses.every(addr => !addressesInRange[addr.id]) && (
+                      <div className="mt-4 p-4 bg-yellow-50 text-yellow-700 rounded-md flex items-start">
+                        <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+                        <p>
+                          Nenhum dos seus endereços está dentro da área de entrega deste restaurante. 
+                          O restaurante entrega em um raio de até {restaurant.delivery_radius}km.
+                        </p>
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <div className="text-center py-6">
-                    <p className="text-gray-500 mb-2">Nenhum endereço cadastrado</p>
-                    <a
-                      href="/profile"
-                      className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center"
-                    >
-                      Cadastrar endereço
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </a>
+                  <div className="text-center py-4 text-gray-500">
+                    Nenhum endereço cadastrado
                   </div>
                 )}
               </CardContent>
