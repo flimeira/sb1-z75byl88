@@ -300,10 +300,10 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
       <div className="flex items-center mb-6">
         <Button
           variant="ghost"
-          onClick={onBack}
+        onClick={onBack}
           className="hover:bg-gray-100"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2" />
+      >
+        <ArrowLeft className="w-5 h-5 mr-2" />
           Voltar
         </Button>
       </div>
@@ -315,30 +315,30 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
           {/* Restaurant Info */}
           <Card className="overflow-hidden">
             <div className="relative h-32">
-              <img
-                src={restaurant.imagem}
-                alt={restaurant.nome}
-                className="w-full h-full object-cover"
-              />
+          <img
+            src={restaurant.imagem}
+            alt={restaurant.nome}
+            className="w-full h-full object-cover"
+          />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent">
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                   <h2 className="text-white text-2xl font-bold">{restaurant.nome}</h2>
                   <div className="flex items-center space-x-3 text-white/90 text-sm mt-1">
-                    <div className="flex items-center">
+                <div className="flex items-center">
                       <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
-                      <span>{restaurant.rating}</span>
-                    </div>
-                    <span>•</span>
-                    <span>{restaurant.tipo}</span>
-                    <span>•</span>
-                    <div className="flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
-                      <span>{restaurant.deliveryTime} min</span>
-                    </div>
-                  </div>
+                  <span>{restaurant.rating}</span>
+                </div>
+                <span>•</span>
+                <span>{restaurant.tipo}</span>
+                <span>•</span>
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 mr-1" />
+                  <span>{restaurant.deliveryTime} min</span>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
           </Card>
 
           {/* Delivery Type */}
@@ -382,7 +382,7 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                     Retire no restaurante em 20 minutos
                   </p>
                 </button>
-              </div>
+      </div>
             </CardContent>
           </Card>
 
@@ -448,7 +448,7 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                           placeholder="Número"
                         />
                       </div>
-                      <div>
+            <div>
                         <Label htmlFor="complement">Complemento</Label>
                         <Input
                           id="complement"
@@ -456,7 +456,7 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                           onChange={(e) => setNewAddress(prev => ({ ...prev, complement: e.target.value }))}
                           placeholder="Opcional"
                         />
-                      </div>
+            </div>
                       <div>
                         <Label htmlFor="neighborhood">Bairro</Label>
                         <Input
@@ -466,7 +466,7 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                           placeholder="Nome do bairro"
                         />
                       </div>
-                      <div>
+            <div>
                         <Label htmlFor="city">Cidade</Label>
                         <Input
                           id="city"
@@ -474,7 +474,7 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                           onChange={(e) => setNewAddress(prev => ({ ...prev, city: e.target.value }))}
                           placeholder="Nome da cidade"
                         />
-                      </div>
+            </div>
                       <div>
                         <Label htmlFor="state">Estado</Label>
                         <Input
@@ -484,8 +484,8 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                           placeholder="UF"
                           maxLength={2}
                         />
-                      </div>
-                    </div>
+        </div>
+      </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="is_default"
@@ -611,10 +611,10 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <div className="flex items-center">
+            <div className="flex items-center">
                     <CreditCard className="w-5 h-5 text-blue-500 mr-2" />
                     <span className="font-medium">Cartão de Crédito</span>
-                  </div>
+            </div>
                 </button>
                 <button
                   type="button"
@@ -625,12 +625,12 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <div className="flex items-center">
+            <div className="flex items-center">
                     <Banknote className="w-5 h-5 text-blue-500 mr-2" />
                     <span className="font-medium">Dinheiro</span>
                   </div>
                 </button>
-              </div>
+            </div>
             </CardContent>
           </Card>
 
@@ -648,7 +648,7 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
               />
             </CardContent>
           </Card>
-        </div>
+      </div>
 
         {/* Right Column - Order Summary */}
         <div className="lg:col-span-1">
@@ -657,45 +657,45 @@ export function CheckoutPage({ restaurant, cart, products, onBack, onConfirm }: 
               <CardTitle className="text-lg">Resumo do Pedido</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {Object.entries(cart).map(([productId, quantity]) => {
-                  const product = products.find(p => p.id === productId);
-                  if (!product) return null;
-                  return (
-                    <div key={productId} className="flex justify-between items-center">
+        <div className="space-y-4">
+          {Object.entries(cart).map(([productId, quantity]) => {
+            const product = products.find(p => p.id === productId);
+            if (!product) return null;
+            return (
+              <div key={productId} className="flex justify-between items-center">
                       <div className="flex items-center">
                         <span className="bg-gray-100 text-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">
                           {quantity}
                         </span>
                         <span className="text-gray-700">{product.nome}</span>
-                      </div>
+                </div>
                       <span className="font-medium">
-                        R$ {(product.valor * quantity).toFixed(2)}
-                      </span>
-                    </div>
-                  );
-                })}
-                
+                  R$ {(product.valor * quantity).toFixed(2)}
+                </span>
+              </div>
+            );
+          })}
+          
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between text-gray-600">
-                    <span>Subtotal</span>
-                    <span>R$ {getCartTotal().toFixed(2)}</span>
-                  </div>
-                  {deliveryType === 'delivery' && (
+              <span>Subtotal</span>
+              <span>R$ {getCartTotal().toFixed(2)}</span>
+            </div>
+            {deliveryType === 'delivery' && (
                     <div className="flex justify-between text-gray-600">
-                      <span>Taxa de Entrega</span>
-                      <span>
-                        {restaurant.delivery_fee === 0 
-                          ? 'Grátis' 
-                          : `R$ ${restaurant.delivery_fee.toFixed(2)}`}
-                      </span>
-                    </div>
-                  )}
+                <span>Taxa de Entrega</span>
+                <span>
+                  {restaurant.delivery_fee === 0 
+                    ? 'Grátis' 
+                    : `R$ ${restaurant.delivery_fee.toFixed(2)}`}
+                </span>
+              </div>
+            )}
                   <div className="flex justify-between items-center font-bold text-lg pt-2">
-                    <span>Total</span>
-                    <span>R$ {getFinalTotal().toFixed(2)}</span>
-                  </div>
-                </div>
+              <span>Total</span>
+              <span>R$ {getFinalTotal().toFixed(2)}</span>
+            </div>
+          </div>
 
                 <Button
                   onClick={handleSubmit}
