@@ -47,7 +47,7 @@ interface Profile {
   updated_at: string;
 }
 
-export default function Profile() {
+export function Profile() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
