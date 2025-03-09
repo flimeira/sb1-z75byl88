@@ -17,26 +17,26 @@ export function Sidebar({ isOpen, onClose, userEmail, onSignOut }: SidebarProps)
 
   return (
     <>
-      {/* Overlay */}
+      {/* Overlay - apenas para mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity md:hidden"
           onClick={onClose}
         />
       )}
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 right-0 h-full w-80 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 h-full bg-white shadow-xl z-50 transition-transform duration-300 ease-in-out
+          md:translate-x-0 md:w-64 md:static md:h-screen
+          ${isOpen ? 'translate-x-0 w-80' : '-translate-x-full w-80'}`}
       >
-        <div className="p-6">
+        <div className="p-6 h-full flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <div className="text-lg font-semibold text-gray-900">Menu</div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full"
+              className="p-2 hover:bg-gray-100 rounded-full md:hidden"
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>
@@ -47,7 +47,7 @@ export function Sidebar({ isOpen, onClose, userEmail, onSignOut }: SidebarProps)
             <div className="text-gray-900 font-medium">{userEmail}</div>
           </div>
 
-          <nav className="space-y-1">
+          <nav className="space-y-1 flex-1">
             <button
               onClick={() => {
                 setShowAIChat(true);
@@ -116,15 +116,15 @@ export function Sidebar({ isOpen, onClose, userEmail, onSignOut }: SidebarProps)
               <MessageSquare className="w-5 h-5 mr-3 group-hover:text-blue-500" />
               <span>Enviar Feedback</span>
             </button>
-
-            <button
-              onClick={onSignOut}
-              className="flex items-center w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg group transition-colors"
-            >
-              <LogOut className="w-5 h-5 mr-3" />
-              <span>Sair</span>
-            </button>
           </nav>
+
+          <button
+            onClick={onSignOut}
+            className="flex items-center w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg group transition-colors mt-auto"
+          >
+            <LogOut className="w-5 h-5 mr-3" />
+            <span>Sair</span>
+          </button>
         </div>
       </div>
 

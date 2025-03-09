@@ -582,110 +582,120 @@ export function Dashboard() {
 
   if (showOrderConfirmation && orderConfirmation) {
     return (
-      <div className="container mx-auto max-w-4xl px-4 py-8">
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-green-600 mb-2">
-                Pedido Confirmado!
-              </h2>
-              <p className="text-gray-600">
-                Seu pedido foi recebido com sucesso.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Número do Pedido:</span>
-                <span className="font-medium">#{orderConfirmation.orderNumber}</span>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Total:</span>
-                <span className="font-medium">
-                  R$ {orderConfirmation.totalAmount.toFixed(2)}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Tipo de Entrega:</span>
-                <span className="font-medium">
-                  {orderConfirmation.deliveryType === 'delivery' ? 'Delivery' : 'Retirada'}
-                </span>
-              </div>
-
-              {orderConfirmation.deliveryType === 'delivery' && orderConfirmation.deliveryAddress && (
-                <div className="mt-4">
-                  <h3 className="font-medium text-gray-900 mb-2">Endereço de Entrega:</h3>
+      <div className="flex h-screen">
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userEmail={user?.email || ''} onSignOut={signOut} />
+        <div className="flex-1 overflow-auto">
+          <div className="container mx-auto max-w-4xl px-4 py-8">
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-bold text-green-600 mb-2">
+                    Pedido Confirmado!
+                  </h2>
                   <p className="text-gray-600">
-                    {orderConfirmation.deliveryAddress.street}, {orderConfirmation.deliveryAddress.number}
-                    {orderConfirmation.deliveryAddress.complement && ` - ${orderConfirmation.deliveryAddress.complement}`}
+                    Seu pedido foi recebido com sucesso.
                   </p>
-                  <p className="text-gray-600">
-                    {orderConfirmation.deliveryAddress.neighborhood}, {orderConfirmation.deliveryAddress.city} - {orderConfirmation.deliveryAddress.state}
-                  </p>
-                  <p className="text-gray-600">CEP: {orderConfirmation.deliveryAddress.zip_code}</p>
                 </div>
-              )}
 
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Forma de Pagamento:</span>
-                <span className="font-medium">
-                  {orderConfirmation.paymentMethod === 'credit_card' ? 'Cartão de Crédito' : 'Dinheiro'}
-                </span>
-              </div>
-            </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Número do Pedido:</span>
+                    <span className="font-medium">#{orderConfirmation.orderNumber}</span>
+                  </div>
 
-            <div className="mt-8 flex justify-center space-x-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowOrderConfirmation(false);
-                  setSelectedRestaurant(null);
-                }}
-              >
-                Fazer Novo Pedido
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowOrderConfirmation(false);
-                  setSelectedRestaurant(null);
-                }}
-              >
-                Voltar para Restaurantes
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Total:</span>
+                    <span className="font-medium">
+                      R$ {orderConfirmation.totalAmount.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Tipo de Entrega:</span>
+                    <span className="font-medium">
+                      {orderConfirmation.deliveryType === 'delivery' ? 'Delivery' : 'Retirada'}
+                    </span>
+                  </div>
+
+                  {orderConfirmation.deliveryType === 'delivery' && orderConfirmation.deliveryAddress && (
+                    <div className="mt-4">
+                      <h3 className="font-medium text-gray-900 mb-2">Endereço de Entrega:</h3>
+                      <p className="text-gray-600">
+                        {orderConfirmation.deliveryAddress.street}, {orderConfirmation.deliveryAddress.number}
+                        {orderConfirmation.deliveryAddress.complement && ` - ${orderConfirmation.deliveryAddress.complement}`}
+                      </p>
+                      <p className="text-gray-600">
+                        {orderConfirmation.deliveryAddress.neighborhood}, {orderConfirmation.deliveryAddress.city} - {orderConfirmation.deliveryAddress.state}
+                      </p>
+                      <p className="text-gray-600">CEP: {orderConfirmation.deliveryAddress.zip_code}</p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Forma de Pagamento:</span>
+                    <span className="font-medium">
+                      {orderConfirmation.paymentMethod === 'credit_card' ? 'Cartão de Crédito' : 'Dinheiro'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex justify-center space-x-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowOrderConfirmation(false);
+                      setSelectedRestaurant(null);
+                    }}
+                  >
+                    Fazer Novo Pedido
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowOrderConfirmation(false);
+                      setSelectedRestaurant(null);
+                    }}
+                  >
+                    Voltar para Restaurantes
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (showCheckout && selectedRestaurant) {
     return (
-      <CheckoutPage
-        restaurant={selectedRestaurant}
-        cart={cart}
-        products={products}
-        onBack={() => setShowCheckout(false)}
-        onConfirm={handleConfirmOrder}
-      />
+      <div className="flex h-screen">
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userEmail={user?.email || ''} onSignOut={signOut} />
+        <div className="flex-1 overflow-auto">
+          <CheckoutPage
+            restaurant={selectedRestaurant}
+            cart={cart}
+            products={products}
+            onBack={() => setShowCheckout(false)}
+            onConfirm={handleConfirmOrder}
+          />
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+    <div className="flex h-screen">
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userEmail={user?.email || ''} onSignOut={signOut} />
       
-      <div className="flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <button
                   onClick={() => setIsSidebarOpen(true)}
-                  className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                  className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 md:hidden"
                 >
                   <Menu className="h-6 w-6" />
                 </button>
@@ -705,316 +715,318 @@ export function Dashboard() {
           </div>
         </header>
 
-        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          {selectedRestaurant ? (
-            <div className="px-4 sm:px-0">
-              <div className="relative h-64 rounded-lg overflow-hidden mb-6">
-                <img
-                  src={selectedRestaurant.imagem}
-                  alt={selectedRestaurant.nome}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-end">
-                  <div className="p-6 text-white">
-                    <h2 className="text-2xl font-bold mb-1">{selectedRestaurant.nome}</h2>
-                    <div className="flex items-center text-white text-sm mb-3">
-                      <MapPin className="w-3 h-3 mr-1" />
-                      <span>{selectedRestaurant.street}, {selectedRestaurant.number} - {selectedRestaurant.city}, {selectedRestaurant.state}</span>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center">
-                        <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                        <span className="ml-1">{selectedRestaurant.rating}</span>
+        <main className="flex-1 overflow-auto bg-gray-100">
+          <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            {selectedRestaurant ? (
+              <div className="px-4 sm:px-0">
+                <div className="relative h-64 rounded-lg overflow-hidden mb-6">
+                  <img
+                    src={selectedRestaurant.imagem}
+                    alt={selectedRestaurant.nome}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-end">
+                    <div className="p-6 text-white">
+                      <h2 className="text-2xl font-bold mb-1">{selectedRestaurant.nome}</h2>
+                      <div className="flex items-center text-white text-sm mb-3">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        <span>{selectedRestaurant.street}, {selectedRestaurant.number} - {selectedRestaurant.city}, {selectedRestaurant.state}</span>
                       </div>
-                      <span>•</span>
-                      <span>{selectedRestaurant.tipo}</span>
-                      <span>•</span>
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-1" />
-                        <span>{selectedRestaurant.deliveryTime} min</span>
-                      </div>
-                      <span>•</span>
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span>Até {selectedRestaurant.delivery_radius}km</span>
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center">
+                          <Star className="w-5 h-5 text-yellow-400 fill-current" />
+                          <span className="ml-1">{selectedRestaurant.rating}</span>
+                        </div>
+                        <span>•</span>
+                        <span>{selectedRestaurant.tipo}</span>
+                        <span>•</span>
+                        <div className="flex items-center">
+                          <Clock className="w-4 h-4 mr-1" />
+                          <span>{selectedRestaurant.deliveryTime} min</span>
+                        </div>
+                        <span>•</span>
+                        <div className="flex items-center">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          <span>Até {selectedRestaurant.delivery_radius}km</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {categories.length > 0 && (
-                <div className="mb-6 overflow-x-auto">
-                  <div className="flex space-x-4">
-                    {categories.map(category => (
-                      <button
-                        key={category.id}
-                        onClick={() => setSelectedCategory(category.id)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
-                          selectedCategory === category.id
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {category.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                  <h3 className="text-xl font-semibold text-gray-900">Menu</h3>
-                  {filteredProducts.length > 0 ? (
-                    filteredProducts.map(product => (
-                      <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                        <div className="flex">
-                          {product.imagem && (
-                            <div className="w-24 h-24 flex-shrink-0">
-                              <img 
-                                src={product.imagem} 
-                                alt={product.nome} 
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )}
-                          <div className="p-4 flex-1">
-                            <div className="flex justify-between">
-                              <div>
-                                <h4 className="text-lg font-medium text-gray-900">{product.nome}</h4>
-                                <p className="text-gray-600 text-sm mt-1">{product.descricao}</p>
-                                <p className="text-gray-900 font-medium mt-2">R$ {product.valor.toFixed(2)}</p>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={() => removeFromCart(product.id)}
-                                  className={`p-1 rounded-full ${
-                                    cart[product.id] ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-400'
-                                  }`}
-                                  disabled={!cart[product.id]}
-                                >
-                                  <Minus className="w-4 h-4" />
-                                </button>
-                                <span className="text-gray-700 w-6 text-center">
-                                  {cart[product.id] || 0}
-                                </span>
-                                <button
-                                  onClick={() => addToCart(product.id)}
-                                  className="p-1 rounded-full bg-green-100 text-green-600"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-gray-500 text-center py-8">
-                      Nenhum produto encontrado nesta categoria.
-                    </div>
-                  )}
-                </div>
-
-                <div className="sticky top-24 h-fit">
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Seu Pedido</h3>
-                    {Object.keys(cart).length > 0 ? (
-                      <>
-                        <div className="space-y-4 mb-6">
-                          {Object.entries(cart).map(([productId, quantity]) => {
-                            const product = products.find(p => p.id === productId);
-                            if (!product) return null;
-                            return (
-                              <div key={productId} className="flex justify-between items-center">
-                                <div className="flex items-center">
-                                  {product.imagem && (
-                                    <img 
-                                      src={product.imagem} 
-                                      alt={product.nome} 
-                                      className="w-10 h-10 object-cover rounded-md mr-3"
-                                    />
-                                  )}
-                                  <div>
-                                    <span className="font-medium">{quantity}x</span>{' '}
-                                    <span>{product.nome}</span>
-                                  </div>
-                                </div>
-                                <span className="text-gray-900">
-                                  R$ {(product.valor * quantity).toFixed(2)}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <div className="border-t pt-4">
-                          <div className="flex justify-between items-center font-semibold text-lg">
-                            <span>Total</span>
-                            <span>
-                              R$ {calculateOrderTotal().toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
+                {categories.length > 0 && (
+                  <div className="mb-6 overflow-x-auto">
+                    <div className="flex space-x-4">
+                      {categories.map(category => (
                         <button
-                          onClick={handleCheckout}
-                          className="w-full bg-blue-600 text-white py-3 rounded-lg mt-6 hover:bg-blue-700 transition-colors"
+                          key={category.id}
+                          onClick={() => setSelectedCategory(category.id)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
+                            selectedCategory === category.id
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
                         >
-                          Finalizar Pedido
+                          {category.name}
                         </button>
-                      </>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <h3 className="text-xl font-semibold text-gray-900">Menu</h3>
+                    {filteredProducts.length > 0 ? (
+                      filteredProducts.map(product => (
+                        <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                          <div className="flex">
+                            {product.imagem && (
+                              <div className="w-24 h-24 flex-shrink-0">
+                                <img 
+                                  src={product.imagem} 
+                                  alt={product.nome} 
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            <div className="p-4 flex-1">
+                              <div className="flex justify-between">
+                                <div>
+                                  <h4 className="text-lg font-medium text-gray-900">{product.nome}</h4>
+                                  <p className="text-gray-600 text-sm mt-1">{product.descricao}</p>
+                                  <p className="text-gray-900 font-medium mt-2">R$ {product.valor.toFixed(2)}</p>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => removeFromCart(product.id)}
+                                    className={`p-1 rounded-full ${
+                                      cart[product.id] ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-400'
+                                    }`}
+                                    disabled={!cart[product.id]}
+                                  >
+                                    <Minus className="w-4 h-4" />
+                                  </button>
+                                  <span className="text-gray-700 w-6 text-center">
+                                    {cart[product.id] || 0}
+                                  </span>
+                                  <button
+                                    onClick={() => addToCart(product.id)}
+                                    className="p-1 rounded-full bg-green-100 text-green-600"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
                     ) : (
                       <div className="text-gray-500 text-center py-8">
-                        Seu carrinho está vazio.
+                        Nenhum produto encontrado nesta categoria.
                       </div>
                     )}
                   </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="px-4 sm:px-0">
-              <div className="mb-6">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Buscar restaurantes..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                </div>
-              </div>
 
-              <div className="flex flex-wrap items-center justify-between mb-6">
-                <div className="flex overflow-x-auto pb-2 mb-2 md:mb-0">
-                  <button
-                    onClick={() => {
-                      console.log('Selecionando todos os tipos');
-                      setSelectedType(null);
-                    }}
-                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap mr-2 ${
-                      selectedType === null
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Todos
-                  </button>
-                  {restaurantTypes.map(type => (
+                  <div className="sticky top-24 h-fit">
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4">Seu Pedido</h3>
+                      {Object.keys(cart).length > 0 ? (
+                        <>
+                          <div className="space-y-4 mb-6">
+                            {Object.entries(cart).map(([productId, quantity]) => {
+                              const product = products.find(p => p.id === productId);
+                              if (!product) return null;
+                              return (
+                                <div key={productId} className="flex justify-between items-center">
+                                  <div className="flex items-center">
+                                    {product.imagem && (
+                                      <img 
+                                        src={product.imagem} 
+                                        alt={product.nome} 
+                                        className="w-10 h-10 object-cover rounded-md mr-3"
+                                      />
+                                    )}
+                                    <div>
+                                      <span className="font-medium">{quantity}x</span>{' '}
+                                      <span>{product.nome}</span>
+                                    </div>
+                                  </div>
+                                  <span className="text-gray-900">
+                                    R$ {(product.valor * quantity).toFixed(2)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="border-t pt-4">
+                            <div className="flex justify-between items-center font-semibold text-lg">
+                              <span>Total</span>
+                              <span>
+                                R$ {calculateOrderTotal().toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={handleCheckout}
+                            className="w-full bg-blue-600 text-white py-3 rounded-lg mt-6 hover:bg-blue-700 transition-colors"
+                          >
+                            Finalizar Pedido
+                          </button>
+                        </>
+                      ) : (
+                        <div className="text-gray-500 text-center py-8">
+                          Seu carrinho está vazio.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="px-4 sm:px-0">
+                <div className="mb-6">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Buscar restaurantes..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between mb-6">
+                  <div className="flex overflow-x-auto pb-2 mb-2 md:mb-0">
                     <button
-                      key={type.id}
                       onClick={() => {
-                        console.log('Selecionando tipo:', {
-                          id: type.id,
-                          tipo: type.tipo
-                        });
-                        setSelectedType(type.id);
+                        console.log('Selecionando todos os tipos');
+                        setSelectedType(null);
                       }}
                       className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap mr-2 ${
-                        selectedType === type.id
+                        selectedType === null
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      {type.tipo}
+                      Todos
                     </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredRestaurants.length > 0 ? (
-                  filteredRestaurants.map(restaurant => {
-                    const distance = restaurantDistances[restaurant.id];
-                    const isInRange = restaurantDeliveryStatus[restaurant.id] ?? false;
-                    
-                    return (
-                      <div
-                        key={restaurant.id}
-                        onClick={() => handleRestaurantSelect(restaurant)}
-                        className={`bg-white rounded-lg shadow-md overflow-hidden transition-all ${
-                          !isInRange 
-                            ? 'opacity-60 cursor-not-allowed' 
-                            : 'cursor-pointer hover:shadow-lg'
+                    {restaurantTypes.map(type => (
+                      <button
+                        key={type.id}
+                        onClick={() => {
+                          console.log('Selecionando tipo:', {
+                            id: type.id,
+                            tipo: type.tipo
+                          });
+                          setSelectedType(type.id);
+                        }}
+                        className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap mr-2 ${
+                          selectedType === type.id
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                       >
-                        <div className="relative h-48">
-                          <img
-                            src={restaurant.imagem}
-                            alt={restaurant.nome}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
-                            <div className="absolute bottom-0 left-0 right-0 p-4">
-                              <h3 className="text-white text-lg font-semibold">{restaurant.nome}</h3>
-                              <div className="flex items-center text-white text-sm mt-1">
-                                <MapPin className="w-3 h-3 mr-1" />
-                                <span className="truncate">{restaurant.street}, {restaurant.number}</span>
-                              </div>
-                              <div className="flex items-center space-x-2 text-white text-sm mt-1">
-                                <div className="flex items-center">
-                                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                                  <span className="ml-1">{restaurant.rating}</span>
+                        {type.tipo}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredRestaurants.length > 0 ? (
+                    filteredRestaurants.map(restaurant => {
+                      const distance = restaurantDistances[restaurant.id];
+                      const isInRange = restaurantDeliveryStatus[restaurant.id] ?? false;
+                      
+                      return (
+                        <div
+                          key={restaurant.id}
+                          onClick={() => handleRestaurantSelect(restaurant)}
+                          className={`bg-white rounded-lg shadow-md overflow-hidden transition-all ${
+                            !isInRange 
+                              ? 'opacity-60 cursor-not-allowed' 
+                              : 'cursor-pointer hover:shadow-lg'
+                          }`}
+                        >
+                          <div className="relative h-48">
+                            <img
+                              src={restaurant.imagem}
+                              alt={restaurant.nome}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
+                              <div className="absolute bottom-0 left-0 right-0 p-4">
+                                <h3 className="text-white text-lg font-semibold">{restaurant.nome}</h3>
+                                <div className="flex items-center text-white text-sm mt-1">
+                                  <MapPin className="w-3 h-3 mr-1" />
+                                  <span className="truncate">{restaurant.street}, {restaurant.number}</span>
                                 </div>
-                                <span>•</span>
-                                <span>{restaurant.tipo}</span>
+                                <div className="flex items-center space-x-2 text-white text-sm mt-1">
+                                  <div className="flex items-center">
+                                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                                    <span className="ml-1">{restaurant.rating}</span>
+                                  </div>
+                                  <span>•</span>
+                                  <span>{restaurant.tipo}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="p-4">
-                          <div className="flex items-center justify-between text-sm text-gray-500">
-                            <div className="flex items-center">
-                              <Clock className="w-4 h-4 mr-1" />
-                              <span>{restaurant.deliveryTime} min</span>
-                            </div>
-                            <div>
-                              {restaurant.delivery_fee === 0 ? (
-                                <span className="text-green-600 font-medium">Entrega Grátis</span>
-                              ) : (
-                                <span>Taxa: R$ {restaurant.delivery_fee.toFixed(2)}</span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {/* Delivery radius information */}
-                          <div className="mt-2 flex items-center justify-between text-sm">
-                            <div className="flex items-center">
-                              <MapPin className="w-4 h-4 mr-1 text-gray-500" />
-                              <span className="text-gray-500">Raio: {restaurant.delivery_radius}km</span>
+                          <div className="p-4">
+                            <div className="flex items-center justify-between text-sm text-gray-500">
+                              <div className="flex items-center">
+                                <Clock className="w-4 h-4 mr-1" />
+                                <span>{restaurant.deliveryTime} min</span>
+                              </div>
+                              <div>
+                                {restaurant.delivery_fee === 0 ? (
+                                  <span className="text-green-600 font-medium">Entrega Grátis</span>
+                                ) : (
+                                  <span>Taxa: R$ {restaurant.delivery_fee.toFixed(2)}</span>
+                                )}
+                              </div>
                             </div>
                             
-                            {distance !== null && distance !== undefined && (
-                              <div className={`font-medium ${isInRange ? 'text-green-600' : 'text-red-500'}`}>
-                                {isInRange ? 'Entrega disponível' : 'Fora da área de entrega'}
-                                <span className="text-gray-500 font-normal ml-1">({distance.toFixed(1)}km)</span>
+                            {/* Delivery radius information */}
+                            <div className="mt-2 flex items-center justify-between text-sm">
+                              <div className="flex items-center">
+                                <MapPin className="w-4 h-4 mr-1 text-gray-500" />
+                                <span className="text-gray-500">Raio: {restaurant.delivery_radius}km</span>
+                              </div>
+                              
+                              {distance !== null && distance !== undefined && (
+                                <div className={`font-medium ${isInRange ? 'text-green-600' : 'text-red-500'}`}>
+                                  {isInRange ? 'Entrega disponível' : 'Fora da área de entrega'}
+                                  <span className="text-gray-500 font-normal ml-1">({distance.toFixed(1)}km)</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Warning banner for out of range restaurants */}
+                            {isInRange === false && (
+                              <div className="mt-2 bg-red-50 text-red-600 p-2 rounded-md text-xs text-center">
+                                Este restaurante não entrega no seu endereço
                               </div>
                             )}
                           </div>
-                          
-                          {/* Warning banner for out of range restaurants */}
-                          {isInRange === false && (
-                            <div className="mt-2 bg-red-50 text-red-600 p-2 rounded-md text-xs text-center">
-                              Este restaurante não entrega no seu endereço
-                            </div>
-                          )}
                         </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="col-span-full text-center py-12">
-                    <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900">Nenhum restaurante encontrado</h3>
-                    <p className="text-gray-500 mt-2">Tente ajustar seus filtros de busca.</p>
-                  </div>
-                )}
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-full text-center py-12">
+                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900">Nenhum restaurante encontrado</h3>
+                      <p className="text-gray-500 mt-2">Tente ajustar seus filtros de busca.</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </main>
       </div>
     </div>
