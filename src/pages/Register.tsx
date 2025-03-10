@@ -6,6 +6,11 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { AlertCircle, Loader2, Eye, EyeOff, Check, X } from 'lucide-react';
 
+interface AuthError {
+  message: string;
+  status?: number;
+}
+
 interface PasswordRequirement {
   text: string;
   met: boolean;
@@ -47,6 +52,38 @@ export function Register() {
     if (formatted.length <= 15) { // (99) 99999-9999
       setPhone(formatted);
     }
+  };
+
+  const getErrorMessage = (error: any): string => {
+    if (typeof error === 'object' && error !== null) {
+      // Erro específico de usuário já registrado
+      if (error.message?.includes('User already registered')) {
+        return 'Este email já está cadastrado. Por favor, faça login ou use outro email.';
+      }
+
+      // Erro de formato de email inválido
+      if (error.message?.includes('Invalid email')) {
+        return 'Por favor, insira um email válido.';
+      }
+
+      // Erro de senha muito fraca
+      if (error.message?.includes('Password')) {
+        return 'A senha não atende aos requisitos mínimos de segurança.';
+      }
+
+      // Erro de rede ou servidor
+      if (error.message?.includes('network') || error.status === 500) {
+        return 'Erro de conexão. Por favor, verifique sua internet e tente novamente.';
+      }
+
+      // Se houver uma mensagem de erro, use-a
+      if (error.message) {
+        return error.message;
+      }
+    }
+
+    // Mensagem genérica para outros casos
+    return 'Erro ao criar conta. Por favor, tente novamente mais tarde.';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,7 +134,7 @@ export function Register() {
       });
     } catch (error) {
       console.error('Error signing up:', error);
-      setError('Erro ao criar conta. Verifique seus dados e tente novamente.');
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
