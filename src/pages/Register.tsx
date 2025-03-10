@@ -111,7 +111,6 @@ export function Register() {
     try {
       console.log('=== TENTANDO CRIAR USUÁRIO ===');
       console.log('Configuração do Supabase:', {
-        url: supabase.getUrl(),
         hasSession: !!supabase.auth.getSession()
       });
 
