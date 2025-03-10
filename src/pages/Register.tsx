@@ -110,19 +110,19 @@ export function Register() {
         }
       });
 
-      if (signUpError) throw signUpError;
+      if (signUpError) {
+        console.error('SignUp error:', signUpError);
+        throw signUpError;
+      }
 
       if (!user) {
         throw new Error('Erro ao criar usuário');
       }
 
-      // Aguardar um momento para garantir que o usuário foi criado
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       // Criar perfil do usuário
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert([
+        .insert([
           {
             id: user.id,
             user_id: user.id,
@@ -132,12 +132,12 @@ export function Register() {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }
-        ], {
-          onConflict: 'id'
-        });
+        ]);
 
       if (profileError) {
         console.error('Profile creation error:', profileError);
+        // Se houver erro na criação do perfil, tentamos deletar o usuário
+        await supabase.auth.admin.deleteUser(user.id);
         throw new Error('Erro ao criar perfil do usuário');
       }
 
