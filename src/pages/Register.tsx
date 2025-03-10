@@ -98,6 +98,7 @@ export function Register() {
     }
 
     try {
+      // Primeiro, criar o usuário
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -111,20 +112,33 @@ export function Register() {
 
       if (signUpError) throw signUpError;
 
-      if (user) {
-        // Criar perfil do usuário
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              user_id: user.id,
-              name,
-              phone,
-              email
-            }
-          ]);
+      if (!user) {
+        throw new Error('Erro ao criar usuário');
+      }
 
-        if (profileError) throw profileError;
+      // Aguardar um momento para garantir que o usuário foi criado
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Criar perfil do usuário
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert([
+          {
+            id: user.id,
+            user_id: user.id,
+            name,
+            phone,
+            email,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ], {
+          onConflict: 'id'
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        throw new Error('Erro ao criar perfil do usuário');
       }
 
       navigate('/login', { 
