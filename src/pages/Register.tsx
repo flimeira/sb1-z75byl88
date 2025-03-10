@@ -110,29 +110,12 @@ export function Register() {
 
     try {
       console.log('=== TENTANDO CRIAR USUÁRIO ===');
-      console.log('Configuração do Supabase:', {
-        hasSession: !!supabase.auth.getSession()
-      });
-
-      // Criar o usuário com dados mínimos e sem confirmação de email
-      const signUpData = {
+      
+      // Criar o usuário com dados mínimos
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/login`,
-          data: {
-            name,
-            phone
-          }
-        }
-      };
-
-      console.log('Dados sendo enviados para o Supabase:', {
-        ...signUpData,
-        password: '[REDACTED]'
+        password
       });
-
-      const { data: { user }, error: signUpError } = await supabase.auth.signUp(signUpData);
 
       console.log('Resposta completa do Supabase:', {
         user: user ? {
@@ -173,6 +156,19 @@ export function Register() {
         role: user.role,
         created_at: user.created_at
       });
+
+      // Atualizar os dados do usuário
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          name,
+          phone
+        }
+      });
+
+      if (updateError) {
+        console.error('Erro ao atualizar dados do usuário:', updateError);
+        throw updateError;
+      }
 
       // Criar perfil do usuário
       console.log('=== TENTANDO CRIAR PERFIL ===');
