@@ -90,7 +90,7 @@ export function Profile() {
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .or(`id.eq.${user.id},user_id.eq.${user.id}`)
         .single();
 
       console.log('Profile check response:', { existingProfile, checkError });
@@ -98,29 +98,65 @@ export function Profile() {
       if (checkError) {
         if (checkError.code === 'PGRST116') { // Nenhum resultado encontrado
           console.log('No profile found, creating new profile...');
-          // Criar novo perfil
-          const { data: newProfile, error: createError } = await supabase
+          
+          // Verificar se já existe um perfil com o mesmo ID ou user_id
+          const { data: duplicateCheck, error: duplicateError } = await supabase
             .from('profiles')
-            .insert([
-              {
-                id: user.id,
-                user_id: user.id,
-                email: user.email,
-                name: user.user_metadata?.name || '',
-                phone: user.user_metadata?.phone || '',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }
-            ])
-            .select()
-            .single();
+            .select('id')
+            .or(`id.eq.${user.id},user_id.eq.${user.id}`)
+            .maybeSingle();
 
-          if (createError) {
-            console.error('Error creating profile:', createError);
-            throw createError;
+          if (duplicateError) {
+            console.error('Error checking for duplicate profile:', duplicateError);
+            throw duplicateError;
           }
 
-          setProfile(newProfile);
+          if (duplicateCheck) {
+            console.log('Found existing profile:', duplicateCheck);
+            // Se encontrou um perfil, atualiza em vez de criar
+            const { data: updatedProfile, error: updateError } = await supabase
+              .from('profiles')
+              .update({
+                name: user.user_metadata?.name || '',
+                phone: user.user_metadata?.phone || '',
+                email: user.email,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', duplicateCheck.id)
+              .select()
+              .single();
+
+            if (updateError) {
+              console.error('Error updating profile:', updateError);
+              throw updateError;
+            }
+
+            setProfile(updatedProfile);
+          } else {
+            // Se não encontrou, cria um novo perfil
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert([
+                {
+                  id: user.id,
+                  user_id: user.id,
+                  email: user.email,
+                  name: user.user_metadata?.name || '',
+                  phone: user.user_metadata?.phone || '',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }
+              ])
+              .select()
+              .single();
+
+            if (createError) {
+              console.error('Error creating profile:', createError);
+              throw createError;
+            }
+
+            setProfile(newProfile);
+          }
         } else {
           console.error('Error fetching profile:', checkError);
           throw checkError;
@@ -131,7 +167,12 @@ export function Profile() {
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
-      setError(error.message || 'Erro ao carregar perfil');
+      // Mensagem de erro mais amigável para o usuário
+      if (error.code === '23505') {
+        setError('Houve um problema ao carregar seu perfil. Por favor, tente novamente.');
+      } else {
+        setError(error.message || 'Erro ao carregar perfil');
+      }
     } finally {
       setLoading(false);
     }
