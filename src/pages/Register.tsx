@@ -111,10 +111,24 @@ export function Register() {
     try {
       console.log('=== TENTANDO CRIAR USUÁRIO ===');
       
+      // Verificar se já existe uma sessão
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Sessão atual:', session ? 'Existe' : 'Não existe');
+      
+      if (sessionError) {
+        console.error('Erro ao verificar sessão:', sessionError);
+      }
+
       // Criar o usuário com dados mínimos
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          data: {
+            name,
+            phone
+          }
+        }
       });
 
       console.log('Resposta completa do Supabase:', {
@@ -123,12 +137,15 @@ export function Register() {
           email: user.email,
           role: user.role,
           aud: user.aud,
-          created_at: user.created_at
+          created_at: user.created_at,
+          user_metadata: user.user_metadata
         } : null,
         error: signUpError ? {
           message: signUpError.message,
           status: signUpError.status,
-          name: signUpError.name
+          name: signUpError.name,
+          details: signUpError.details,
+          hint: signUpError.hint
         } : null
       });
 
@@ -154,64 +171,46 @@ export function Register() {
         id: user.id,
         email: user.email,
         role: user.role,
-        created_at: user.created_at
+        created_at: user.created_at,
+        user_metadata: user.user_metadata
       });
 
-      // Atualizar os dados do usuário
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: {
-          name,
-          phone
-        }
-      });
+      // Aguardar um momento para garantir que o trigger foi executado
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (updateError) {
-        console.error('Erro ao atualizar dados do usuário:', updateError);
-        throw updateError;
-      }
-
-      // Criar perfil do usuário
-      console.log('=== TENTANDO CRIAR PERFIL ===');
-      const profileToInsert = {
-        id: user.id,
-        user_id: user.id,
-        name,
-        phone,
-        email,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      console.log('Dados do perfil sendo enviados:', profileToInsert);
-
-      const { data: profileData, error: profileError } = await supabase
+      // Verificar se o perfil foi criado
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .insert([profileToInsert])
-        .select();
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-      console.log('Resposta da criação do perfil:', {
-        data: profileData,
-        error: profileError ? {
-          message: profileError.message,
-          details: profileError.details,
-          hint: profileError.hint,
-          code: profileError.code
-        } : null
+      console.log('Verificação do perfil:', {
+        profile,
+        error: profileError
       });
 
       if (profileError) {
-        console.error('Erro detalhado da criação do perfil:', {
-          message: profileError.message,
-          details: profileError.details,
-          hint: profileError.hint,
-          code: profileError.code,
-          stack: profileError.stack
-        });
-        throw new Error('Erro ao criar perfil do usuário');
+        console.error('Erro ao verificar perfil:', profileError);
+        throw new Error('Erro ao verificar perfil do usuário');
       }
 
-      console.log('=== PERFIL CRIADO COM SUCESSO ===');
-      console.log('Dados do perfil criado:', profileData);
+      // Atualizar o perfil com os dados adicionais
+      if (profile) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            name,
+            phone,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+
+        if (updateError) {
+          console.error('Erro ao atualizar perfil:', updateError);
+          throw new Error('Erro ao atualizar perfil do usuário');
+        }
+      }
 
       navigate('/login', { 
         state: { 
