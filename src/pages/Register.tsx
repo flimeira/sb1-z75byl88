@@ -73,11 +73,12 @@ export function Register() {
 
       // Erro de rede ou servidor
       if (error.message?.includes('network') || error.status === 500) {
-        // Verificar se o usuário foi criado mesmo com o erro 500
-        if (error.status === 500 && error.message?.includes('Database error saving new user')) {
-          return 'Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.';
-        }
         return 'Erro de conexão. Por favor, verifique sua internet e tente novamente.';
+      }
+
+      // Erro 406 - Usuário criado mas precisa confirmar email
+      if (error.status === 406) {
+        return 'Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.';
       }
 
       // Se houver uma mensagem de erro, use-a
@@ -153,7 +154,7 @@ export function Register() {
         } : null
       });
 
-      // Se o usuário foi criado, mesmo com erro 500, consideramos sucesso
+      // Se o usuário foi criado, mesmo com erro 406, consideramos sucesso
       if (user) {
         console.log('=== USUÁRIO CRIADO COM SUCESSO ===');
         console.log('Detalhes do usuário:', {
@@ -164,8 +165,8 @@ export function Register() {
           user_metadata: user.user_metadata
         });
 
-        // Se houver erro 500 mas o usuário foi criado, mostramos mensagem de sucesso
-        if (signUpError?.status === 500) {
+        // Se houver erro 406 (necessidade de confirmação de email), mostramos mensagem de sucesso
+        if (signUpError?.status === 406) {
           setError('Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.');
           navigate('/login', { 
             state: { 
