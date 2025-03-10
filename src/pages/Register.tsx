@@ -165,62 +165,32 @@ export function Register() {
           user_metadata: user.user_metadata
         });
 
-        // Se houver erro 406 (necessidade de confirmação de email), mostramos mensagem de sucesso
-        if (signUpError?.status === 406) {
-          setError('Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.');
-          navigate('/login', { 
-            state: { 
-              message: 'Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.' 
+        // Criar perfil do usuário
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: user.id,
+              user_id: user.id,
+              name,
+              phone,
+              email,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             }
-          });
-          return;
+          ]);
+
+        if (insertError) {
+          console.log('Erro ao criar perfil (ignorando):', insertError);
         }
 
-        // Se não houver erro, continuamos com o processo normal
-        if (!signUpError) {
-          // Aguardar um momento para garantir que o trigger foi executado
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          // Verificar se o perfil foi criado
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-          console.log('Verificação do perfil:', {
-            profile,
-            error: profileError
-          });
-
-          if (profileError) {
-            console.error('Erro ao verificar perfil:', profileError);
-            throw new Error('Erro ao verificar perfil do usuário');
+        // Redirecionar para login com mensagem de sucesso
+        navigate('/login', { 
+          state: { 
+            message: 'Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.' 
           }
-
-          // Atualizar o perfil com os dados adicionais
-          if (profile) {
-            const { error: updateError } = await supabase
-              .from('profiles')
-              .update({
-                name,
-                phone,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', user.id);
-
-            if (updateError) {
-              console.error('Erro ao atualizar perfil:', updateError);
-              throw new Error('Erro ao atualizar perfil do usuário');
-            }
-          }
-
-          navigate('/login', { 
-            state: { 
-              message: 'Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.' 
-            }
-          });
-        }
+        });
+        return;
       }
 
       if (signUpError) {
