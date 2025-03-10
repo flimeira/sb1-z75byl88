@@ -177,7 +177,7 @@ export function Register() {
 
       // Criar perfil do usuário
       console.log('=== TENTANDO CRIAR PERFIL ===');
-      const profileData = {
+      const profileToInsert = {
         id: user.id,
         user_id: user.id,
         name,
@@ -187,11 +187,11 @@ export function Register() {
         updated_at: new Date().toISOString()
       };
 
-      console.log('Dados do perfil sendo enviados:', profileData);
+      console.log('Dados do perfil sendo enviados:', profileToInsert);
 
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .insert([profileData])
+        .insert([profileToInsert])
         .select();
 
       console.log('Resposta da criação do perfil:', {
