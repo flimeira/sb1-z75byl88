@@ -91,6 +91,9 @@ export function Register() {
     setLoading(true);
     setError(null);
 
+    console.log('Iniciando processo de registro...');
+    console.log('Dados do formulário:', { email, name, phone });
+
     if (!isPasswordValid) {
       setError('Por favor, atenda a todos os requisitos da senha');
       setLoading(false);
@@ -98,36 +101,58 @@ export function Register() {
     }
 
     try {
+      console.log('Tentando criar usuário no Supabase Auth...');
       // Criar o usuário com dados mínimos
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email,
         password
       });
 
+      console.log('Resposta do signUp:', { user, signUpError });
+
       if (signUpError) {
-        console.error('SignUp error:', signUpError);
+        console.error('Erro detalhado do signUp:', {
+          message: signUpError.message,
+          status: signUpError.status,
+          name: signUpError.name,
+          stack: signUpError.stack
+        });
         throw signUpError;
       }
 
       if (!user) {
+        console.error('Usuário não foi criado');
         throw new Error('Erro ao criar usuário');
       }
 
+      console.log('Usuário criado com sucesso:', { userId: user.id });
+
       // Atualizar os dados adicionais do usuário
-      const { error: updateError } = await supabase.auth.updateUser({
+      console.log('Tentando atualizar dados do usuário...');
+      const { data: updateData, error: updateError } = await supabase.auth.updateUser({
         data: {
           name,
           phone
         }
       });
 
+      console.log('Resposta da atualização:', { updateData, updateError });
+
       if (updateError) {
-        console.error('Update user error:', updateError);
+        console.error('Erro detalhado da atualização:', {
+          message: updateError.message,
+          status: updateError.status,
+          name: updateError.name,
+          stack: updateError.stack
+        });
         throw updateError;
       }
 
+      console.log('Dados do usuário atualizados com sucesso');
+
       // Criar perfil do usuário
-      const { error: profileError } = await supabase
+      console.log('Tentando criar perfil do usuário...');
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert([
           {
@@ -139,12 +164,22 @@ export function Register() {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }
-        ]);
+        ])
+        .select();
+
+      console.log('Resposta da criação do perfil:', { profileData, profileError });
 
       if (profileError) {
-        console.error('Profile creation error:', profileError);
+        console.error('Erro detalhado da criação do perfil:', {
+          message: profileError.message,
+          details: profileError.details,
+          hint: profileError.hint,
+          code: profileError.code
+        });
         throw new Error('Erro ao criar perfil do usuário');
       }
+
+      console.log('Perfil criado com sucesso');
 
       navigate('/login', { 
         state: { 
@@ -152,7 +187,12 @@ export function Register() {
         }
       });
     } catch (error) {
-      console.error('Error signing up:', error);
+      console.error('Erro completo do processo de registro:', {
+        error,
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       setError(getErrorMessage(error));
     } finally {
       setLoading(false);
