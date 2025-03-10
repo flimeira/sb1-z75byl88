@@ -98,16 +98,10 @@ export function Register() {
     }
 
     try {
-      // Primeiro, criar o usuário
+      // Criar o usuário com dados mínimos
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          data: {
-            name,
-            phone
-          }
-        }
+        password
       });
 
       if (signUpError) {
@@ -117,6 +111,19 @@ export function Register() {
 
       if (!user) {
         throw new Error('Erro ao criar usuário');
+      }
+
+      // Atualizar os dados adicionais do usuário
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          name,
+          phone
+        }
+      });
+
+      if (updateError) {
+        console.error('Update user error:', updateError);
+        throw updateError;
       }
 
       // Criar perfil do usuário
@@ -136,8 +143,6 @@ export function Register() {
 
       if (profileError) {
         console.error('Profile creation error:', profileError);
-        // Se houver erro na criação do perfil, tentamos deletar o usuário
-        await supabase.auth.admin.deleteUser(user.id);
         throw new Error('Erro ao criar perfil do usuário');
       }
 
