@@ -9,6 +9,7 @@ import { Orders } from './pages/Orders';
 import { Points } from './pages/Points';
 import { Feedback } from './pages/Feedback';
 import { Notifications } from './pages/Notifications';
+import { ResetPassword } from './pages/ResetPassword';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, error } = useAuth();
@@ -38,6 +39,7 @@ export function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/dashboard" element={<PrivateRoute><Navigate to="/" replace /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />

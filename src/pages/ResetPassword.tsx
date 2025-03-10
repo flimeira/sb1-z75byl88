@@ -1,103 +1,147 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { AuthLayout } from '../components/AuthLayout';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 export function ResetPassword() {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
+  const logoUrl = 'https://bawostbfbkadpsggljfm.supabase.co/storage/v1/object/public/site-assets//logo.jpeg';
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase) {
-      setError('Cliente Supabase não foi inicializado');
+    setLoading(true);
+    setError(null);
+
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem');
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setError('');
-
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
+      const { error } = await supabase.auth.updateUser({
+        password: password
       });
 
       if (error) throw error;
+      
       setSuccess(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ocorreu um erro');
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      setError('Erro ao redefinir senha. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (success) {
-    return (
-      <AuthLayout title="Verifique seu E-mail">
-        <div className="text-center">
-          <p className="text-gray-600 mb-6">
-            Enviamos as instruções de recuperação de senha para {email}. Por favor, verifique seu e-mail para continuar.
-          </p>
-          <Link
-            to="/signin"
-            className="text-blue-600 hover:text-blue-500 font-medium flex items-center justify-center"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar para o Login
-          </Link>
-        </div>
-      </AuthLayout>
-    );
-  }
-
   return (
-    <AuthLayout title="Recuperar Senha">
-      <form onSubmit={handleResetPassword} className="space-y-6">
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-
-        <div>
-          <p className="text-gray-600 mb-4">
-            Digite seu e-mail e enviaremos as instruções para recuperar sua senha.
-          </p>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            E-mail
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="flex flex-col items-center">
+          <img
+            src={logoUrl}
+            alt="AmericanaFood"
+            className="h-16 w-16 rounded-full shadow-lg"
           />
+          <h2 className="mt-4 text-center text-3xl font-extrabold text-gray-900">
+            AmericanaFood
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Defina sua nova senha
+          </p>
         </div>
+      </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Enviando...' : 'Enviar Instruções'}
-        </button>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow-xl rounded-lg sm:px-10">
+          {success ? (
+            <div className="text-center">
+              <div className="text-green-600 text-lg font-medium mb-2">
+                Senha redefinida com sucesso!
+              </div>
+              <p className="text-gray-600">
+                Você será redirecionado para a página de login em instantes...
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <Label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Nova Senha
+                </Label>
+                <div className="mt-1">
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
 
-        <Link
-          to="/signin"
-          className="block text-center text-sm text-gray-600 hover:text-gray-900"
-        >
-          <span className="flex items-center justify-center">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar para o Login
-          </span>
-        </Link>
-      </form>
-    </AuthLayout>
+              <div>
+                <Label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700">
+                  Confirme a Nova Senha
+                </Label>
+                <div className="mt-1">
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="flex items-center gap-2 p-3 bg-red-50 text-red-600 rounded-md text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Redefinir Senha'
+                )}
+              </Button>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => navigate('/login')}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Voltar ao login
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
