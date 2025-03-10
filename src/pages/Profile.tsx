@@ -79,6 +79,9 @@ export function Profile() {
         return;
       }
 
+      setLoading(true);
+      setError(null);
+
       console.log('Fetching profile for user:', user.id);
       console.log('User metadata:', user.user_metadata);
       console.log('User email:', user.email);
@@ -87,49 +90,50 @@ export function Profile() {
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single();
 
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 é o código para "nenhum resultado encontrado"
-        console.error('Error checking profile:', checkError);
-        throw checkError;
-      }
+      console.log('Profile check response:', { existingProfile, checkError });
 
-      console.log('Existing profile check:', existingProfile);
+      if (checkError) {
+        if (checkError.code === 'PGRST116') { // Nenhum resultado encontrado
+          console.log('No profile found, creating new profile...');
+          // Criar novo perfil
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: user.id,
+                user_id: user.id,
+                email: user.email,
+                name: user.user_metadata?.name || '',
+                phone: user.user_metadata?.phone || '',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ])
+            .select()
+            .single();
 
-      // Se não existir, vamos criar um novo perfil
-      if (!existingProfile) {
-        console.log('Creating new profile for user');
-        const newProfileData = {
-          user_id: user.id,
-          full_name: user.user_metadata?.name || user.email?.split('@')[0] || '',
-          birth_date: user.user_metadata?.birth_date || null,
-        };
-        console.log('New profile data:', newProfileData);
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            throw createError;
+          }
 
-        const { data: newProfile, error: insertError } = await supabase
-          .from('profiles')
-          .insert([newProfileData])
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error('Error creating profile:', insertError);
-          throw insertError;
+          setProfile(newProfile);
+        } else {
+          console.error('Error fetching profile:', checkError);
+          throw checkError;
         }
-
-        console.log('New profile created:', newProfile);
-        setProfile(newProfile);
-        return;
+      } else {
+        console.log('Profile found:', existingProfile);
+        setProfile(existingProfile);
       }
-
-      // Se existir, vamos usar o perfil encontrado
-      console.log('Profile data:', existingProfile);
-      console.log('User data:', user);
-      setProfile(existingProfile);
     } catch (error) {
       console.error('Error in fetchProfile:', error);
-      setError('Erro ao carregar perfil');
+      setError(error.message || 'Erro ao carregar perfil');
+    } finally {
+      setLoading(false);
     }
   };
 
