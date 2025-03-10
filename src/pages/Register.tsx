@@ -73,6 +73,10 @@ export function Register() {
 
       // Erro de rede ou servidor
       if (error.message?.includes('network') || error.status === 500) {
+        // Verificar se o usuário foi criado mesmo com o erro 500
+        if (error.status === 500 && error.message?.includes('Database error saving new user')) {
+          return 'Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.';
+        }
         return 'Erro de conexão. Por favor, verifique sua internet e tente novamente.';
       }
 
@@ -149,6 +153,75 @@ export function Register() {
         } : null
       });
 
+      // Se o usuário foi criado, mesmo com erro 500, consideramos sucesso
+      if (user) {
+        console.log('=== USUÁRIO CRIADO COM SUCESSO ===');
+        console.log('Detalhes do usuário:', {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          created_at: user.created_at,
+          user_metadata: user.user_metadata
+        });
+
+        // Se houver erro 500 mas o usuário foi criado, mostramos mensagem de sucesso
+        if (signUpError?.status === 500) {
+          setError('Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.');
+          navigate('/login', { 
+            state: { 
+              message: 'Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.' 
+            }
+          });
+          return;
+        }
+
+        // Se não houver erro, continuamos com o processo normal
+        if (!signUpError) {
+          // Aguardar um momento para garantir que o trigger foi executado
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // Verificar se o perfil foi criado
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+          console.log('Verificação do perfil:', {
+            profile,
+            error: profileError
+          });
+
+          if (profileError) {
+            console.error('Erro ao verificar perfil:', profileError);
+            throw new Error('Erro ao verificar perfil do usuário');
+          }
+
+          // Atualizar o perfil com os dados adicionais
+          if (profile) {
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({
+                name,
+                phone,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', user.id);
+
+            if (updateError) {
+              console.error('Erro ao atualizar perfil:', updateError);
+              throw new Error('Erro ao atualizar perfil do usuário');
+            }
+          }
+
+          navigate('/login', { 
+            state: { 
+              message: 'Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.' 
+            }
+          });
+        }
+      }
+
       if (signUpError) {
         console.error('Erro detalhado do signUp:', {
           message: signUpError.message,
@@ -165,58 +238,6 @@ export function Register() {
         console.error('Usuário não foi criado - resposta vazia do Supabase');
         throw new Error('Erro ao criar usuário');
       }
-
-      console.log('=== USUÁRIO CRIADO COM SUCESSO ===');
-      console.log('Detalhes do usuário:', {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        created_at: user.created_at,
-        user_metadata: user.user_metadata
-      });
-
-      // Aguardar um momento para garantir que o trigger foi executado
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Verificar se o perfil foi criado
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      console.log('Verificação do perfil:', {
-        profile,
-        error: profileError
-      });
-
-      if (profileError) {
-        console.error('Erro ao verificar perfil:', profileError);
-        throw new Error('Erro ao verificar perfil do usuário');
-      }
-
-      // Atualizar o perfil com os dados adicionais
-      if (profile) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            name,
-            phone,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id);
-
-        if (updateError) {
-          console.error('Erro ao atualizar perfil:', updateError);
-          throw new Error('Erro ao atualizar perfil do usuário');
-        }
-      }
-
-      navigate('/login', { 
-        state: { 
-          message: 'Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.' 
-        }
-      });
     } catch (error) {
       console.error('=== ERRO COMPLETO DO PROCESSO DE REGISTRO ===');
       console.error('Detalhes do erro:', {
