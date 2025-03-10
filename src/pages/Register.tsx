@@ -91,19 +91,32 @@ export function Register() {
     setLoading(true);
     setError(null);
 
-    console.log('Iniciando processo de registro...');
-    console.log('Dados do formulário:', { email, name, phone });
+    console.log('=== INÍCIO DO PROCESSO DE REGISTRO ===');
+    console.log('URL da aplicação:', window.location.origin);
+    console.log('Dados do formulário:', { 
+      email, 
+      name, 
+      phone,
+      passwordLength: password.length,
+      isPasswordValid
+    });
 
     if (!isPasswordValid) {
+      console.log('Senha não atende aos requisitos');
       setError('Por favor, atenda a todos os requisitos da senha');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('Tentando criar usuário no Supabase Auth...');
+      console.log('=== TENTANDO CRIAR USUÁRIO ===');
+      console.log('Configuração do Supabase:', {
+        url: supabase.getUrl(),
+        hasSession: !!supabase.auth.getSession()
+      });
+
       // Criar o usuário com dados mínimos e sem confirmação de email
-      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+      const signUpData = {
         email,
         password,
         options: {
@@ -113,57 +126,97 @@ export function Register() {
             phone
           }
         }
+      };
+
+      console.log('Dados sendo enviados para o Supabase:', {
+        ...signUpData,
+        password: '[REDACTED]'
       });
 
-      console.log('Resposta do signUp:', { user, signUpError });
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp(signUpData);
+
+      console.log('Resposta completa do Supabase:', {
+        user: user ? {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          aud: user.aud,
+          created_at: user.created_at
+        } : null,
+        error: signUpError ? {
+          message: signUpError.message,
+          status: signUpError.status,
+          name: signUpError.name
+        } : null
+      });
 
       if (signUpError) {
         console.error('Erro detalhado do signUp:', {
           message: signUpError.message,
           status: signUpError.status,
           name: signUpError.name,
-          stack: signUpError.stack
+          stack: signUpError.stack,
+          details: signUpError.details,
+          hint: signUpError.hint
         });
         throw signUpError;
       }
 
       if (!user) {
-        console.error('Usuário não foi criado');
+        console.error('Usuário não foi criado - resposta vazia do Supabase');
         throw new Error('Erro ao criar usuário');
       }
 
-      console.log('Usuário criado com sucesso:', { userId: user.id });
+      console.log('=== USUÁRIO CRIADO COM SUCESSO ===');
+      console.log('Detalhes do usuário:', {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        created_at: user.created_at
+      });
 
       // Criar perfil do usuário
-      console.log('Tentando criar perfil do usuário...');
+      console.log('=== TENTANDO CRIAR PERFIL ===');
+      const profileData = {
+        id: user.id,
+        user_id: user.id,
+        name,
+        phone,
+        email,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Dados do perfil sendo enviados:', profileData);
+
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .insert([
-          {
-            id: user.id,
-            user_id: user.id,
-            name,
-            phone,
-            email,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ])
+        .insert([profileData])
         .select();
 
-      console.log('Resposta da criação do perfil:', { profileData, profileError });
+      console.log('Resposta da criação do perfil:', {
+        data: profileData,
+        error: profileError ? {
+          message: profileError.message,
+          details: profileError.details,
+          hint: profileError.hint,
+          code: profileError.code
+        } : null
+      });
 
       if (profileError) {
         console.error('Erro detalhado da criação do perfil:', {
           message: profileError.message,
           details: profileError.details,
           hint: profileError.hint,
-          code: profileError.code
+          code: profileError.code,
+          stack: profileError.stack
         });
         throw new Error('Erro ao criar perfil do usuário');
       }
 
-      console.log('Perfil criado com sucesso');
+      console.log('=== PERFIL CRIADO COM SUCESSO ===');
+      console.log('Dados do perfil criado:', profileData);
 
       navigate('/login', { 
         state: { 
@@ -171,15 +224,20 @@ export function Register() {
         }
       });
     } catch (error) {
-      console.error('Erro completo do processo de registro:', {
+      console.error('=== ERRO COMPLETO DO PROCESSO DE REGISTRO ===');
+      console.error('Detalhes do erro:', {
         error,
         message: error.message,
         stack: error.stack,
-        name: error.name
+        name: error.name,
+        type: typeof error,
+        isObject: error instanceof Object,
+        keys: error instanceof Object ? Object.keys(error) : null
       });
       setError(getErrorMessage(error));
     } finally {
       setLoading(false);
+      console.log('=== FIM DO PROCESSO DE REGISTRO ===');
     }
   };
 
