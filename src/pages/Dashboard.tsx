@@ -683,20 +683,9 @@ export function Dashboard() {
                     </div>
                   )}
 
-                  <div className="pt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                  <div className="pt-8 flex justify-center">
                     <Button
                       className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg flex items-center justify-center space-x-2"
-                      onClick={() => {
-                        setShowOrderConfirmation(false);
-                        setSelectedRestaurant(null);
-                      }}
-                    >
-                      <PlusCircle className="w-5 h-5" />
-                      <span>Fazer Novo Pedido</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-2 px-6 rounded-lg flex items-center justify-center space-x-2"
                       onClick={() => {
                         setShowOrderConfirmation(false);
                         setSelectedRestaurant(null);
