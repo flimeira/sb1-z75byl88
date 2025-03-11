@@ -27,7 +27,9 @@ interface RestaurantType {
 
 interface OrderConfirmation {
   orderNumber: string;
-  total: number;
+  totalAmount: number;
+  subtotalAmount: number;
+  deliveryFee: number;
   deliveryType: string;
   paymentMethod: string;
   deliveryAddress?: Address;
@@ -269,7 +271,9 @@ export function Dashboard() {
       setLoading(true);
       setError(null);
 
-      const totalAmount = calculateOrderTotal();
+      const subtotal = calculateOrderTotal();
+      const deliveryFee = deliveryType === 'delivery' ? selectedRestaurant.delivery_fee : 0;
+      const totalAmount = subtotal + deliveryFee;
 
       // Criar o pedido
       const { data: order, error: orderError } = await supabase
@@ -278,6 +282,8 @@ export function Dashboard() {
           {
             user_id: user.id,
             restaurant_id: selectedRestaurant.id,
+            subtotal_amount: subtotal,
+            delivery_fee: deliveryFee,
             total_amount: totalAmount,
             delivery_type: deliveryType,
             payment_method: paymentMethod,
@@ -373,6 +379,8 @@ export function Dashboard() {
       setOrderConfirmation({
         orderNumber: order.order_number,
         totalAmount: order.total_amount,
+        subtotalAmount: order.subtotal_amount,
+        deliveryFee: order.delivery_fee,
         deliveryType: order.delivery_type,
         paymentMethod: order.payment_method,
         deliveryAddress: order.delivery_address,
@@ -613,11 +621,22 @@ export function Dashboard() {
                     <div className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
                       <div className="flex items-center space-x-3 mb-2">
                         <DollarSign className="w-5 h-5 text-green-600" />
-                        <span className="text-gray-600 font-medium">Total</span>
+                        <span className="text-gray-600 font-medium">Resumo do Pedido</span>
                       </div>
-                      <span className="text-xl font-bold text-gray-900">
-                        R$ {orderConfirmation.totalAmount.toFixed(2)}
-                      </span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-gray-600">
+                          <span>Subtotal:</span>
+                          <span>R$ {orderConfirmation.subtotalAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-600">
+                          <span>Taxa de entrega:</span>
+                          <span>R$ {orderConfirmation.deliveryFee.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t">
+                          <span>Total:</span>
+                          <span>R$ {orderConfirmation.totalAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
