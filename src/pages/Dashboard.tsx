@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Star, Clock, ArrowLeft, Plus, Minus, Menu, ShoppingBag, MapPin, AlertCircle, Heart, Receipt, DollarSign, Truck, CreditCard, PlusCircle } from 'lucide-react';
+import { Search, Star, Clock, ArrowLeft, Plus, Minus, Menu, ShoppingBag, MapPin, AlertCircle, Heart, Receipt, DollarSign, Truck, CreditCard, PlusCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { CheckoutPage } from '../components/CheckoutPage';
 import { OrderConfirmationModal } from '../components/OrderConfirmationModal';
