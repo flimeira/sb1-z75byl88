@@ -201,7 +201,6 @@ export function Profile() {
           name: profile.name,
           birth_date: profile.birth_date || null,
           phone: phone,
-          email: email,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -347,9 +346,9 @@ export function Profile() {
                         <input
                           type="email"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                          required
+                          readOnly
+                          disabled
+                          className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                         />
                       </div>
 
