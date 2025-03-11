@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Star, Clock, ArrowLeft, Plus, Minus, Menu, ShoppingBag, MapPin, AlertCircle, Heart } from 'lucide-react';
+import { Search, Star, Clock, ArrowLeft, Plus, Minus, Menu, ShoppingBag, MapPin, AlertCircle, Heart, Receipt, DollarSign, Truck, CreditCard, PlusCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { CheckoutPage } from '../components/CheckoutPage';
 import { OrderConfirmationModal } from '../components/OrderConfirmationModal';
@@ -584,80 +584,109 @@ export function Dashboard() {
     return (
       <div className="flex h-screen">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userEmail={user?.email || ''} onSignOut={signOut} />
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-gray-50">
           <div className="container mx-auto max-w-4xl px-4 py-8">
-            <Card>
-              <CardContent className="p-6">
-                <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold text-green-600 mb-2">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardContent className="p-8">
+                <div className="text-center mb-8 animate-fadeIn">
+                  <div className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-green-100">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h2 className="text-3xl font-bold text-green-600 mb-3">
                     Pedido Confirmado!
                   </h2>
-                  <p className="text-gray-600">
-                    Seu pedido foi recebido com sucesso.
+                  <p className="text-gray-600 text-lg">
+                    Seu pedido foi recebido e está sendo preparado.
                   </p>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Número do Pedido:</span>
-                    <span className="font-medium">#{orderConfirmation.orderNumber}</span>
+                <div className="space-y-6 divide-y divide-gray-100">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
+                    <div className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <Receipt className="w-5 h-5 text-blue-600" />
+                        <span className="text-gray-600 font-medium">Número do Pedido</span>
+                      </div>
+                      <span className="text-xl font-bold text-gray-900">#{orderConfirmation.orderNumber}</span>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <DollarSign className="w-5 h-5 text-green-600" />
+                        <span className="text-gray-600 font-medium">Total</span>
+                      </div>
+                      <span className="text-xl font-bold text-gray-900">
+                        R$ {orderConfirmation.totalAmount.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Total:</span>
-                    <span className="font-medium">
-                      R$ {orderConfirmation.totalAmount.toFixed(2)}
-                    </span>
-                  </div>
+                  <div className="pt-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Truck className="w-5 h-5 text-purple-600" />
+                        <span className="text-gray-600">Tipo de Entrega</span>
+                      </div>
+                      <span className="font-medium text-gray-900">
+                        {orderConfirmation.deliveryType === 'delivery' ? 'Delivery' : 'Retirada'}
+                      </span>
+                    </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Tipo de Entrega:</span>
-                    <span className="font-medium">
-                      {orderConfirmation.deliveryType === 'delivery' ? 'Delivery' : 'Retirada'}
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <CreditCard className="w-5 h-5 text-indigo-600" />
+                        <span className="text-gray-600">Forma de Pagamento</span>
+                      </div>
+                      <span className="font-medium text-gray-900">
+                        {orderConfirmation.paymentMethod === 'credit_card' ? 'Cartão de Crédito' : 'Dinheiro'}
+                      </span>
+                    </div>
                   </div>
 
                   {orderConfirmation.deliveryType === 'delivery' && orderConfirmation.deliveryAddress && (
-                    <div className="mt-4">
-                      <h3 className="font-medium text-gray-900 mb-2">Endereço de Entrega:</h3>
-                      <p className="text-gray-600">
-                        {orderConfirmation.deliveryAddress.street}, {orderConfirmation.deliveryAddress.number}
-                        {orderConfirmation.deliveryAddress.complement && ` - ${orderConfirmation.deliveryAddress.complement}`}
-                      </p>
-                      <p className="text-gray-600">
-                        {orderConfirmation.deliveryAddress.neighborhood}, {orderConfirmation.deliveryAddress.city} - {orderConfirmation.deliveryAddress.state}
-                      </p>
-                      <p className="text-gray-600">CEP: {orderConfirmation.deliveryAddress.zip_code}</p>
+                    <div className="pt-6">
+                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <MapPin className="w-5 h-5 text-red-600" />
+                          <h3 className="font-medium text-gray-900">Endereço de Entrega</h3>
+                        </div>
+                        <div className="space-y-1 text-gray-600 ml-8">
+                          <p className="font-medium">
+                            {orderConfirmation.deliveryAddress.street}, {orderConfirmation.deliveryAddress.number}
+                            {orderConfirmation.deliveryAddress.complement && ` - ${orderConfirmation.deliveryAddress.complement}`}
+                          </p>
+                          <p>
+                            {orderConfirmation.deliveryAddress.neighborhood}, {orderConfirmation.deliveryAddress.city} - {orderConfirmation.deliveryAddress.state}
+                          </p>
+                          <p>CEP: {orderConfirmation.deliveryAddress.zip_code}</p>
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Forma de Pagamento:</span>
-                    <span className="font-medium">
-                      {orderConfirmation.paymentMethod === 'credit_card' ? 'Cartão de Crédito' : 'Dinheiro'}
-                    </span>
+                  <div className="pt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <Button
+                      className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg flex items-center justify-center space-x-2"
+                      onClick={() => {
+                        setShowOrderConfirmation(false);
+                        setSelectedRestaurant(null);
+                      }}
+                    >
+                      <PlusCircle className="w-5 h-5" />
+                      <span>Fazer Novo Pedido</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-2 px-6 rounded-lg flex items-center justify-center space-x-2"
+                      onClick={() => {
+                        setShowOrderConfirmation(false);
+                        setSelectedRestaurant(null);
+                      }}
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                      <span>Voltar para Restaurantes</span>
+                    </Button>
                   </div>
-                </div>
-
-                <div className="mt-8 flex justify-center space-x-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowOrderConfirmation(false);
-                      setSelectedRestaurant(null);
-                    }}
-                  >
-                    Fazer Novo Pedido
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowOrderConfirmation(false);
-                      setSelectedRestaurant(null);
-                    }}
-                  >
-                    Voltar para Restaurantes
-                  </Button>
                 </div>
               </CardContent>
             </Card>
