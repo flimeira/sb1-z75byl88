@@ -191,45 +191,39 @@ export function Profile() {
     if (!user || !profile) return;
 
     try {
-      setLoading(true);
+      setSaving(true);
       setError(null);
 
       // Atualizar o perfil
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          full_name: profile.full_name,
-          birth_date: profile.birth_date,
+          name: profile.full_name,
+          birth_date: profile.birth_date || null,
+          phone: phone,
+          email: email,
+          updated_at: new Date().toISOString()
         })
-        .eq('user_id', user.id);
+        .eq('id', user.id);
 
       if (profileError) throw profileError;
 
-      // Atualizar os metadados do usuário (email e telefone)
-      const metadataUpdates: { [key: string]: any } = {};
-      
-      if (email !== user.email) {
-        metadataUpdates.email = email;
-      }
-      
-      if (phone !== user.user_metadata?.phone) {
-        metadataUpdates.phone = phone;
-      }
+      // Atualizar os metadados do usuário
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: {
+          name: profile.full_name,
+          phone: phone
+        }
+      });
 
-      if (Object.keys(metadataUpdates).length > 0) {
-        const { error: metadataError } = await supabase.auth.updateUser({
-          data: metadataUpdates
-        });
-
-        if (metadataError) throw metadataError;
-      }
+      if (metadataError) throw metadataError;
 
       setError('Perfil atualizado com sucesso!');
     } catch (error) {
       console.error('Error updating profile:', error);
-      setError('Erro ao atualizar perfil');
+      setError(error.message || 'Erro ao atualizar perfil');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
