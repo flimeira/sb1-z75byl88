@@ -50,7 +50,15 @@ interface Profile {
 export function Profile() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>({
+    id: '',
+    user_id: '',
+    full_name: '',
+    birth_date: '',
+    avatar_url: null,
+    created_at: '',
+    updated_at: ''
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -60,13 +68,13 @@ export function Profile() {
     confirm_password: ''
   });
   const [saving, setSaving] = useState(false);
-  const [phone, setPhone] = useState<string | null>(null);
-  const [email, setEmail] = useState<string | null>(null);
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     if (user) {
-      setPhone(user.user_metadata?.phone || null);
-      setEmail(user.email || null);
+      setPhone(user.user_metadata?.phone || '');
+      setEmail(user.email || '');
       fetchProfile();
     }
   }, [user]);
@@ -329,7 +337,7 @@ export function Profile() {
                         </label>
                         <input
                           type="text"
-                          value={profile.full_name}
+                          value={profile?.full_name || ''}
                           onChange={(e) =>
                             setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)
                           }
@@ -344,7 +352,7 @@ export function Profile() {
                         </label>
                         <input
                           type="email"
-                          value={email || ''}
+                          value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                           required
@@ -357,7 +365,7 @@ export function Profile() {
                         </label>
                         <input
                           type="date"
-                          value={profile.birth_date || ''}
+                          value={profile?.birth_date || ''}
                           onChange={(e) =>
                             setProfile(prev => prev ? { ...prev, birth_date: e.target.value } : null)
                           }
@@ -371,7 +379,7 @@ export function Profile() {
                         </label>
                         <input
                           type="tel"
-                          value={phone || ''}
+                          value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                         />
