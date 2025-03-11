@@ -40,7 +40,7 @@ const BRAZILIAN_STATES = [
 interface Profile {
   id: string;
   user_id: string;
-  full_name: string;
+  name: string;
   birth_date: string | null;
   avatar_url: string | null;
   created_at: string;
@@ -53,7 +53,7 @@ export function Profile() {
   const [profile, setProfile] = useState<Profile | null>({
     id: '',
     user_id: '',
-    full_name: '',
+    name: '',
     birth_date: '',
     avatar_url: null,
     created_at: '',
@@ -198,7 +198,7 @@ export function Profile() {
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          name: profile.full_name,
+          name: profile.name,
           birth_date: profile.birth_date || null,
           phone: phone,
           email: email,
@@ -211,7 +211,7 @@ export function Profile() {
       // Atualizar os metadados do usuário
       const { error: metadataError } = await supabase.auth.updateUser({
         data: {
-          name: profile.full_name,
+          name: profile.name,
           phone: phone
         }
       });
@@ -331,9 +331,9 @@ export function Profile() {
                         </label>
                         <input
                           type="text"
-                          value={profile?.full_name || ''}
+                          value={profile?.name || ''}
                           onChange={(e) =>
-                            setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)
+                            setProfile(prev => prev ? { ...prev, name: e.target.value } : null)
                           }
                           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                           required
