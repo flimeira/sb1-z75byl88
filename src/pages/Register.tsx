@@ -167,23 +167,30 @@ export function Register() {
           user_metadata: user.user_metadata
         });
 
-        // Criar perfil do usuário
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: user.id,
-              user_id: user.id,
-              name,
-              phone,
-              email,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }
-          ]);
+        try {
+          // Criar perfil do usuário
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: user.id,
+                user_id: user.id,
+                name,
+                phone,
+                email,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ])
+            .select();
 
-        if (insertError) {
-          console.log('Erro ao criar perfil (ignorando):', insertError);
+          if (insertError) {
+            console.error('Erro ao criar perfil:', insertError);
+            throw insertError;
+          }
+        } catch (profileError) {
+          console.error('Erro ao criar perfil:', profileError);
+          // Mesmo com erro no perfil, continuamos pois o usuário foi criado
         }
 
         // Mostrar tela de confirmação em vez de redirecionar
