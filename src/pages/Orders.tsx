@@ -27,10 +27,11 @@ interface Order {
     id: string;
     nome: string;
     imagem: string;
-    delivery_fee: number;
   };
   delivery_type: string;
   total_amount: number;
+  subtotal_amount: number;
+  delivery_fee: number;
   created_at: string;
   items: OrderItem[];
   review: OrderReview | null;
@@ -113,13 +114,14 @@ export function Orders() {
           id,
           order_number,
           total_amount,
+          subtotal_amount,
+          delivery_fee,
           delivery_type,
           created_at,
           restaurant:restaurant_id (
             id,
             nome,
-            imagem,
-            delivery_fee
+            imagem
           ),
           items:order_items (
             quantity,
@@ -466,22 +468,22 @@ export function Orders() {
                       <div className="pt-2 mt-2 border-t border-gray-100">
                         <div className="flex justify-between items-center text-gray-600">
                           <span>Subtotal</span>
-                          <span>R$ {order.total_amount.toFixed(2)}</span>
+                          <span>R$ {order.subtotal_amount.toFixed(2)}</span>
                         </div>
                         {order.delivery_type === 'delivery' && (
                           <div className="flex justify-between items-center text-gray-600 mt-1">
                             <span>Taxa de Entrega</span>
                             <span>
-                              {order.restaurant.delivery_fee === 0 
+                              {order.delivery_fee === 0 
                                 ? 'Grátis' 
-                                : `R$ ${order.restaurant.delivery_fee.toFixed(2)}`}
+                                : `R$ ${order.delivery_fee.toFixed(2)}`}
                             </span>
                           </div>
                         )}
                         <div className="flex justify-between items-center font-medium text-gray-900 mt-2">
                           <span>Total</span>
                           <span>
-                            R$ {(order.total_amount + (order.delivery_type === 'delivery' ? order.restaurant.delivery_fee : 0)).toFixed(2)}
+                            R$ {order.total_amount.toFixed(2)}
                           </span>
                         </div>
                       </div>
