@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { AlertCircle, Loader2, Eye, EyeOff, Check, X } from 'lucide-react';
+import { RegistrationConfirmation } from '../components/RegistrationConfirmation';
 
 interface AuthError {
   message: string;
@@ -26,6 +27,7 @@ export function Register() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
   const navigate = useNavigate();
   const logoUrl = 'https://bawostbfbkadpsggljfm.supabase.co/storage/v1/object/public/site-assets//logo.jpeg';
 
@@ -184,12 +186,8 @@ export function Register() {
           console.log('Erro ao criar perfil (ignorando):', insertError);
         }
 
-        // Redirecionar para login com mensagem de sucesso
-        navigate('/login', { 
-          state: { 
-            message: 'Conta criada com sucesso! Por favor, verifique seu email para confirmar o cadastro.' 
-          }
-        });
+        // Mostrar tela de confirmação em vez de redirecionar
+        setRegistrationComplete(true);
         return;
       }
 
@@ -226,6 +224,11 @@ export function Register() {
       console.log('=== FIM DO PROCESSO DE REGISTRO ===');
     }
   };
+
+  // Renderizar o componente de confirmação se o registro foi concluído
+  if (registrationComplete) {
+    return <RegistrationConfirmation email={email} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
