@@ -1,78 +1,130 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Notification } from '../types/notification';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
+
+interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
 
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  addNotification: (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => void;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  loading: boolean;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const NotificationContext = createContext<NotificationContextType>({
+  notifications: [],
+  unreadCount: 0,
+  markAsRead: async () => {},
+  markAllAsRead: async () => {},
+  loading: true,
+});
 
-const sampleNotifications = [
-  {
-    restaurantId: "1",
-    restaurantName: "Restaurante Italiano",
-    restaurantImage: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&h=500&fit=crop",
-    title: "Novo Pedido Recebido",
-    content: "Seu pedido #123 foi recebido e está sendo preparado!"
-  },
-  {
-    restaurantId: "2",
-    restaurantName: "Pizzaria Express",
-    restaurantImage: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&h=500&fit=crop",
-    title: "Promoção Especial",
-    content: "Pizza grande com 30% de desconto hoje!"
-  },
-  {
-    restaurantId: "3",
-    restaurantName: "Sushi Master",
-    restaurantImage: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500&h=500&fit=crop",
-    title: "Pedido Entregue",
-    content: "Seu pedido #456 foi entregue com sucesso!"
-  }
-];
-
-export function NotificationProvider({ children }: { children: ReactNode }) {
-  console.log('NotificationProvider mounted');
+export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('Adding sample notifications');
-    // Add sample notifications when the component mounts
-    sampleNotifications.forEach(notification => {
-      addNotification(notification);
-    });
-  }, []);
+    if (user) {
+      fetchNotifications();
+      subscribeToNotifications();
+    }
+  }, [user]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-  console.log('Current unread count:', unreadCount);
+  const fetchNotifications = async () => {
+    if (!user) return;
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(notification =>
-        notification.id === id ? { ...notification, read: true } : notification
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setNotifications(data || []);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const subscribeToNotifications = () => {
+    if (!user) return;
+
+    const subscription = supabase
+      .channel('notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchNotifications();
+        }
       )
-    );
-  };
+      .subscribe();
 
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-  };
-
-  const addNotification = (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: Math.random().toString(36).substr(2, 9),
-      read: false,
-      createdAt: new Date().toISOString(),
+    return () => {
+      subscription.unsubscribe();
     };
-    setNotifications(prev => [newNotification, ...prev]);
   };
+
+  const markAsRead = async (id: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setNotifications(
+        notifications.map((notification) =>
+          notification.id === id ? { ...notification, read: true } : notification
+        )
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) throw error;
+
+      setNotifications(
+        notifications.map((notification) => ({ ...notification, read: true }))
+      );
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
 
   return (
     <NotificationContext.Provider
@@ -81,7 +133,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         unreadCount,
         markAsRead,
         markAllAsRead,
-        addNotification,
+        loading,
       }}
     >
       {children}
@@ -90,9 +142,5 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 }
 
 export function useNotifications() {
-  const context = useContext(NotificationContext);
-  if (context === undefined) {
-    throw new Error('useNotifications must be used within a NotificationProvider');
-  }
-  return context;
+  return useContext(NotificationContext);
 } 
