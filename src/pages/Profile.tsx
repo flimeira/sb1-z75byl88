@@ -1,459 +1,535 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { User, Lock, Save, ArrowLeft, MapPin } from 'lucide-react';
-import { geocodeAddress } from '../utils/geocoding';
+import { User, Lock, Save, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { AddressManager } from '../components/AddressManager';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+
+const BRAZILIAN_STATES = [
+  { value: 'AC', label: 'Acre' },
+  { value: 'AL', label: 'Alagoas' },
+  { value: 'AP', label: 'Amapá' },
+  { value: 'AM', label: 'Amazonas' },
+  { value: 'BA', label: 'Bahia' },
+  { value: 'CE', label: 'Ceará' },
+  { value: 'DF', label: 'Distrito Federal' },
+  { value: 'ES', label: 'Espírito Santo' },
+  { value: 'GO', label: 'Goiás' },
+  { value: 'MA', label: 'Maranhão' },
+  { value: 'MT', label: 'Mato Grosso' },
+  { value: 'MS', label: 'Mato Grosso do Sul' },
+  { value: 'MG', label: 'Minas Gerais' },
+  { value: 'PA', label: 'Pará' },
+  { value: 'PB', label: 'Paraíba' },
+  { value: 'PR', label: 'Paraná' },
+  { value: 'PE', label: 'Pernambuco' },
+  { value: 'PI', label: 'Piauí' },
+  { value: 'RJ', label: 'Rio de Janeiro' },
+  { value: 'RN', label: 'Rio Grande do Norte' },
+  { value: 'RS', label: 'Rio Grande do Sul' },
+  { value: 'RO', label: 'Rondônia' },
+  { value: 'RR', label: 'Roraima' },
+  { value: 'SC', label: 'Santa Catarina' },
+  { value: 'SP', label: 'São Paulo' },
+  { value: 'SE', label: 'Sergipe' },
+  { value: 'TO', label: 'Tocantins' }
+];
 
 interface Profile {
   id: string;
-  full_name: string | null;
+  user_id: string;
+  name: string;
   birth_date: string | null;
-  street: string | null;
-  number: string | null;
-  complement: string | null;
-  neighborhood: string | null;
-  city: string | null;
-  state: string | null;
-  postal_code: string | null;
-  latitude: number | null;
-  longitude: number | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export function Profile() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>({
+    id: '',
+    user_id: '',
+    name: '',
+    birth_date: '',
+    avatar_url: null,
+    created_at: '',
+    updated_at: ''
   });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [updatingCoordinates, setUpdatingCoordinates] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
+  const [saving, setSaving] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
-    const checkUser = async () => {
-      if (!supabase) {
-        navigate('/signin');
+    if (user) {
+      setPhone(user.user_metadata?.phone || '');
+      setEmail(user.email || '');
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    try {
+      if (!user?.id) {
+        console.error('No user ID available');
+        setError('Usuário não autenticado');
         return;
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate('/signin');
-      } else {
-        setUser(user);
-        fetchProfile(user.id);
-      }
-    };
-    
-    checkUser();
-  }, [navigate]);
+      setLoading(true);
+      setError(null);
 
-  const fetchProfile = async (userId: string) => {
-    if (!supabase) return;
-
-    try {
-      const { data, error } = await supabase
+      console.log('Fetching profile for user:', user.id);
+      console.log('User metadata:', user.user_metadata);
+      console.log('User email:', user.email);
+      
+      // Primeiro, vamos verificar se o perfil existe
+      const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', userId)
+        .or(`id.eq.${user.id},user_id.eq.${user.id}`)
         .single();
 
-      if (error) throw error;
-      setProfile(data);
+      console.log('Profile check response:', { existingProfile, checkError });
+
+      if (checkError) {
+        if (checkError.code === 'PGRST116') { // Nenhum resultado encontrado
+          console.log('No profile found, creating new profile...');
+          
+          // Verificar se já existe um perfil com o mesmo ID ou user_id
+          const { data: duplicateCheck, error: duplicateError } = await supabase
+            .from('profiles')
+            .select('id')
+            .or(`id.eq.${user.id},user_id.eq.${user.id}`)
+            .maybeSingle();
+
+          if (duplicateError) {
+            console.error('Error checking for duplicate profile:', duplicateError);
+            throw duplicateError;
+          }
+
+          if (duplicateCheck) {
+            console.log('Found existing profile:', duplicateCheck);
+            // Se encontrou um perfil, atualiza em vez de criar
+            const { data: updatedProfile, error: updateError } = await supabase
+              .from('profiles')
+              .update({
+                name: user.user_metadata?.name || '',
+                phone: user.user_metadata?.phone || '',
+                email: user.email,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', duplicateCheck.id)
+              .select()
+              .single();
+
+            if (updateError) {
+              console.error('Error updating profile:', updateError);
+              throw updateError;
+            }
+
+            setProfile(updatedProfile);
+          } else {
+            // Se não encontrou, cria um novo perfil
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert([
+                {
+                  id: user.id,
+                  user_id: user.id,
+                  email: user.email,
+                  name: user.user_metadata?.name || '',
+                  phone: user.user_metadata?.phone || '',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }
+              ])
+              .select()
+              .single();
+
+            if (createError) {
+              console.error('Error creating profile:', createError);
+              throw createError;
+            }
+
+            setProfile(newProfile);
+          }
+        } else {
+          console.error('Error fetching profile:', checkError);
+          throw checkError;
+        }
+      } else {
+        console.log('Profile found:', existingProfile);
+        setProfile(existingProfile);
+      }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error in fetchProfile:', error);
+      // Mensagem de erro mais amigável para o usuário
+      if (error.code === '23505') {
+        setError('Houve um problema ao carregar seu perfil. Por favor, tente novamente.');
+      } else {
+        setError(error.message || 'Erro ao carregar perfil');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const updateCoordinates = async () => {
-    if (!profile) {
-      setError('Perfil não encontrado');
-      return;
-    }
-
-    if (!profile.street || !profile.number || !profile.city || !profile.state) {
-      setError('Preencha o endereço completo para atualizar as coordenadas');
-      return;
-    }
-
-    setUpdatingCoordinates(true);
-    setError(null);
-
-    try {
-      const coordinates = await geocodeAddress(profile);
-      
-      if (!coordinates) {
-        throw new Error('Não foi possível encontrar as coordenadas para o endereço informado');
-      }
-
-      if (profile && user) {
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            latitude: coordinates.latitude,
-            longitude: coordinates.longitude,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', user.id);
-
-        if (error) throw error;
-        
-        setProfile(prev => prev ? {
-          ...prev,
-          latitude: coordinates.latitude,
-          longitude: coordinates.longitude
-        } : null);
-        
-        setSuccess('Coordenadas atualizadas com sucesso!');
-      }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Falha ao atualizar as coordenadas');
-      console.error('Error updating coordinates:', error);
-    } finally {
-      setUpdatingCoordinates(false);
-    }
-  };
-
-  const handleProfileUpdate = async (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase || !profile || !user) return;
-
-    setSaving(true);
-    setError(null);
-    setSuccess(null);
+    if (!user || !profile) return;
 
     try {
-      const { error } = await supabase
+      setSaving(true);
+      setError(null);
+
+      // Atualizar o perfil
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          ...profile,
-          updated_at: new Date().toISOString(),
+          name: profile.name,
+          birth_date: profile.birth_date || null,
+          phone: phone,
+          updated_at: new Date().toISOString()
         })
-        .eq('user_id', user.id);
+        .eq('id', user.id);
 
-      if (error) throw error;
-      setSuccess('Perfil atualizado com sucesso!');
-      
-      // Update coordinates after address change
-      await updateCoordinates();
+      if (profileError) throw profileError;
+
+      // Atualizar os metadados do usuário
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: {
+          name: profile.name,
+          phone: phone
+        }
+      });
+
+      if (metadataError) throw metadataError;
+
+      setError('Perfil atualizado com sucesso!');
     } catch (error) {
-      setError('Falha ao atualizar o perfil. Por favor, tente novamente.');
       console.error('Error updating profile:', error);
+      setError(error.message || 'Erro ao atualizar perfil');
     } finally {
       setSaving(false);
     }
   };
 
-  const handlePasswordUpdate = async (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase) return;
+    if (!user) return;
 
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setError('As senhas não coincidem');
+    // Validações de senha
+    if (passwordData.new_password.length < 6) {
+      setError('A nova senha deve ter pelo menos 6 caracteres para garantir sua segurança.');
       return;
     }
 
-    setSaving(true);
-    setError(null);
-    setSuccess(null);
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      setError('As senhas não coincidem. Por favor, verifique se digitou corretamente.');
+      return;
+    }
 
     try {
+      setLoading(true);
+      setError(null);
+
       const { error } = await supabase.auth.updateUser({
-        password: passwordForm.newPassword
+        password: passwordData.new_password,
       });
 
-      if (error) throw error;
-      
-      setSuccess('Senha atualizada com sucesso!');
-      setPasswordForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
+      if (error) {
+        if (error.message.includes('weak password')) {
+          throw new Error('A senha escolhida é muito fraca. Por favor, escolha uma senha mais forte com pelo menos 6 caracteres.');
+        }
+        throw error;
+      }
+
       setShowPasswordForm(false);
-    } catch (error) {
-      setError('Falha ao atualizar a senha. Por favor, tente novamente.');
+      setPasswordData({
+        current_password: '',
+        new_password: '',
+        confirm_password: '',
+      });
+      setError('Senha atualizada com sucesso!');
+    } catch (error: any) {
       console.error('Error updating password:', error);
+      setError(error.message || 'Erro ao atualizar senha. Por favor, tente novamente.');
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  if (loading) {
+  if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">Carregando...</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Bem-vindo ao Delivery App</h1>
+          <p className="text-gray-600 mb-4">Faça login para continuar</p>
+          <button
+            onClick={() => navigate('/login')}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Fazer Login
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Voltar para o Dashboard
-        </button>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center mb-8">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/dashboard')}
+              className="mr-4 hover:bg-gray-100"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Voltar
+            </Button>
+            <h1 className="text-2xl font-bold text-gray-900">Meu Perfil</h1>
+          </div>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="px-4 py-5 sm:p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Configurações do Perfil</h2>
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setShowPasswordForm(!showPasswordForm)}
-                  className="flex items-center text-gray-600 hover:text-gray-900"
-                >
-                  <Lock className="w-5 h-5 mr-2" />
-                  Alterar Senha!
-                </button>
-              </div>
+          {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 border border-red-200">
+              {error}
             </div>
+          )}
 
-            {error && (
-              <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-md">
-                {error}
-              </div>
-            )}
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Carregando...</p>
+            </div>
+          ) : profile ? (
+            <div className="space-y-6">
+              <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="border-b bg-white">
+                  <CardTitle className="text-xl text-gray-900">Informações Pessoais</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <form onSubmit={handleSaveProfile} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Nome
+                        </label>
+                        <input
+                          type="text"
+                          value={profile?.name || ''}
+                          onChange={(e) =>
+                            setProfile(prev => prev ? { ...prev, name: e.target.value } : null)
+                          }
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                          required
+                        />
+                      </div>
 
-            {success && (
-              <div className="mb-4 p-4 bg-green-50 text-green-600 rounded-md">
-                {success}
-              </div>
-            )}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          value={email}
+                          readOnly
+                          disabled
+                          className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                        />
+                      </div>
 
-            {showPasswordForm ? (
-              <form onSubmit={handlePasswordUpdate} className="space-y-6">
-                <div>
-                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
-                    Senha Atual
-                  </label>
-                  <input
-                    type="password"
-                    id="currentPassword"
-                    value={passwordForm.currentPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    required
-                  />
-                </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Data de Nascimento
+                        </label>
+                        <input
+                          type="date"
+                          value={profile?.birth_date || ''}
+                          onChange={(e) =>
+                            setProfile(prev => prev ? { ...prev, birth_date: e.target.value } : null)
+                          }
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        />
+                      </div>
 
-                <div>
-                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-                    Nova Senha
-                  </label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    value={passwordForm.newPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                    Confirmar Nova Senha
-                  </label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    value={passwordForm.confirmPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    {saving ? 'Atualizando...' : 'Atualizar Senha'}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handleProfileUpdate} className="space-y-6">
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      value={user?.email || ''}
-                      className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-gray-500"
-                      disabled
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="full_name" className="block text-sm font-medium text-gray-700">
-                      Nome Completo
-                    </label>
-                    <input
-                      type="text"
-                      id="full_name"
-                      value={profile?.full_name || ''}
-                      onChange={(e) => setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="birth_date" className="block text-sm font-medium text-gray-700">
-                      Data de Nascimento
-                    </label>
-                    <input
-                      type="date"
-                      id="birth_date"
-                      value={profile?.birth_date || ''}
-                      onChange={(e) => setProfile(prev => prev ? { ...prev, birth_date: e.target.value } : null)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700">
-                      CEP
-                    </label>
-                    <input
-                      type="text"
-                      id="postal_code"
-                      value={profile?.postal_code || ''}
-                      onChange={(e) => setProfile(prev => prev ? { ...prev, postal_code: e.target.value } : null)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="street" className="block text-sm font-medium text-gray-700">
-                      Rua
-                    </label>
-                    <input
-                      type="text"
-                      id="street"
-                      value={profile?.street || ''}
-                      onChange={(e) => setProfile(prev => prev ? { ...prev, street: e.target.value } : null)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="number" className="block text-sm font-medium text-gray-700">
-                      Número
-                    </label>
-                    <input
-                      type="text"
-                      id="number"
-                      value={profile?.number || ''}
-                      onChange={(e) => setProfile(prev => prev ? { ...prev, number: e.target.value } : null)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="complement" className="block text-sm font-medium text-gray-700">
-                      Complemento
-                    </label>
-                    <input
-                      type="text"
-                      id="complement"
-                      value={profile?.complement || ''}
-                      onChange={(e) => setProfile(prev => prev ? { ...prev, complement: e.target.value } : null)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="neighborhood" className="block text-sm font-medium text-gray-700">
-                      Bairro
-                    </label>
-                    <input
-                      type="text"
-                      id="neighborhood"
-                      value={profile?.neighborhood || ''}
-                      onChange={(e) => setProfile(prev => prev ? { ...prev, neighborhood: e.target.value } : null)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-                      Cidade
-                    </label>
-                    <input
-                      type="text"
-                      id="city"
-                      value={profile?.city || ''}
-                      onChange={(e) => setProfile(prev => prev ? { ...prev, city: e.target.value } : null)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="state" className="block text-sm font-medium text-gray-700">
-                      Estado
-                    </label>
-                    <input
-                      type="text"
-                      id="state"
-                      value={profile?.state || ''}
-                      onChange={(e) => setProfile(prev => prev ? { ...prev, state: e.target.value } : null)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {profile?.latitude && profile?.longitude && (
-                    <div className="col-span-2">
-                      <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <MapPin className="w-4 h-4" />
-                        <span>Coordenadas atuais:</span>
-                        <span>{profile.latitude.toFixed(4)}, {profile.longitude.toFixed(4)}</span>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Telefone
+                        </label>
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        />
                       </div>
                     </div>
-                  )}
-                </div>
 
-                <div className="flex justify-end space-x-4">
-                  <button
-                    type="button"
-                    onClick={updateCoordinates}
-                    disabled={updatingCoordinates || saving}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    <MapPin className="w-4 h-4 mr-2" />
-                    {updatingCoordinates ? 'Atualizando...' : 'Atualizar Coordenadas'}
-                  </button>
-                  
-                  <button
-                    type="submit"
-                    disabled={saving || updatingCoordinates}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    {saving ? 'Salvando...' : 'Salvar Alterações'}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
+                    <div className="flex justify-end pt-4">
+                      <Button 
+                        type="submit" 
+                        disabled={saving}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+                      >
+                        {saving ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Salvando...
+                          </div>
+                        ) : (
+                          'Salvar Alterações'
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="border-b bg-white">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl text-gray-900">Segurança</CardTitle>
+                    {!showPasswordForm && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowPasswordForm(true)}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <Lock className="w-4 h-4 mr-2" />
+                        Alterar Senha
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {showPasswordForm ? (
+                    <form onSubmit={handleChangePassword} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Senha Atual
+                          </label>
+                          <input
+                            type="password"
+                            value={passwordData.current_password}
+                            onChange={(e) =>
+                              setPasswordData(prev => ({
+                                ...prev,
+                                current_password: e.target.value
+                              }))
+                            }
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Nova Senha
+                          </label>
+                          <input
+                            type="password"
+                            value={passwordData.new_password}
+                            onChange={(e) =>
+                              setPasswordData(prev => ({
+                                ...prev,
+                                new_password: e.target.value
+                              }))
+                            }
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Confirmar Nova Senha
+                          </label>
+                          <input
+                            type="password"
+                            value={passwordData.confirm_password}
+                            onChange={(e) =>
+                              setPasswordData(prev => ({
+                                ...prev,
+                                confirm_password: e.target.value
+                              }))
+                            }
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-4 pt-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setShowPasswordForm(false);
+                            setPasswordData({
+                              current_password: '',
+                              new_password: '',
+                              confirm_password: ''
+                            });
+                          }}
+                          className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                        >
+                          Cancelar
+                        </Button>
+                        <Button 
+                          type="submit" 
+                          disabled={saving}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+                        >
+                          {saving ? (
+                            <div className="flex items-center">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Alterando...
+                            </div>
+                          ) : (
+                            'Alterar Senha'
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-gray-600">Mantenha sua senha segura e atualize-a periodicamente</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="border-b bg-white">
+                  <CardTitle className="text-xl text-gray-900">Endereços</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <AddressManager />
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-yellow-800">Perfil não encontrado</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

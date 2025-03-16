@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { updateRestaurantRating } from '../utils/restaurantRating';
+import { addPoints } from '../utils/points';
 
 interface OrderItem {
   product: {
@@ -22,12 +24,14 @@ interface Order {
   id: string;
   order_number: number;
   restaurant: {
+    id: string;
     nome: string;
     imagem: string;
-    delivery_fee: number;
   };
   delivery_type: string;
   total_amount: number;
+  subtotal_amount: number;
+  delivery_fee: number;
   created_at: string;
   items: OrderItem[];
   review: OrderReview | null;
@@ -37,20 +41,31 @@ export function Orders() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [hoveredRating, setHoveredRating] = useState(0);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
+  const logoUrl = 'https://bawostbfbkadpsggljfm.supabase.co/storage/v1/object/public/site-assets//logo.jpeg';
   const ordersPerPage = 10;
   const totalPages = Math.ceil(totalOrders / ordersPerPage);
 
   useEffect(() => {
+    const checkUser = async () => {
+      if (!supabase) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUser(user);
+      }
+    };
+    checkUser();
     fetchOrdersCount();
     fetchOrders();
   }, [currentPage]);
@@ -99,12 +114,14 @@ export function Orders() {
           id,
           order_number,
           total_amount,
+          subtotal_amount,
+          delivery_fee,
           delivery_type,
           created_at,
           restaurant:restaurant_id (
+            id,
             nome,
-            imagem,
-            delivery_fee
+            imagem
           ),
           items:order_items (
             quantity,
@@ -126,10 +143,17 @@ export function Orders() {
 
       if (ordersError) throw ordersError;
 
+      console.log('Raw orders data:', ordersData);
+
       // Process the data
       const processedOrders = ordersData.map(order => {
+        console.log('Processing order:', order.id, 'Review data:', order.review);
         // Extract the first review from the array if it exists
-        const reviewData = order.review && order.review.length > 0 ? order.review[0] : null;
+        const reviewData = order.review && Array.isArray(order.review) && order.review.length > 0 
+          ? order.review[0] 
+          : order.review; // Se não for array, usa o objeto diretamente
+        
+        console.log('Processed review data:', reviewData);
         
         return {
           ...order,
@@ -137,6 +161,7 @@ export function Orders() {
         };
       });
 
+      console.log('Final processed orders:', processedOrders);
       setOrders(processedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -145,40 +170,59 @@ export function Orders() {
     }
   };
 
-  const handleReviewSubmit = async (orderId: string) => {
-    if (!supabase || !rating) {
-      setError('Por favor, selecione uma classificação');
-      return;
-    }
+  const handleReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrder || !supabase || !user) return;
 
     setReviewLoading(true);
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+      console.log('Selected order:', selectedOrder);
+      console.log('Restaurant ID:', selectedOrder.restaurant.id);
 
-      // Use the RPC function to handle upsert
-      const { data, error } = await supabase.rpc('upsert_order_review', {
-        p_order_id: orderId,
-        p_user_id: user.id,
-        p_rating: rating,
-        p_comment: comment.trim() || null
-      });
+      const { error } = await supabase
+        .from('order_reviews')
+        .insert({
+          order_id: selectedOrder.id,
+          user_id: user.id,
+          rating,
+          comment
+        });
 
       if (error) throw error;
-      
-      if (data && !data.success) {
-        throw new Error(data.error || 'Falha ao enviar avaliação');
-      }
 
-      await fetchOrders();
+      // Atualizar o rating do restaurante
+      console.log('Calling updateRestaurantRating with restaurant ID:', selectedOrder.restaurant.id);
+      await updateRestaurantRating(selectedOrder.restaurant.id);
+
+      // Atualizar a lista de pedidos
+      fetchOrders();
       setSelectedOrder(null);
       setRating(0);
       setComment('');
+      setSuccess('Avaliação enviada com sucesso!');
+
+      // Add points
+      const { data: configData } = await supabase
+        .from('points_config')
+        .select('points_per_review')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (configData) {
+        await addPoints(
+          user.id,
+          configData.points_per_review,
+          'review',
+          selectedOrder.id,
+          `Pontos por avaliar o pedido #${selectedOrder.id.slice(0, 8)}`
+        );
+      }
     } catch (error) {
+      setError('Falha ao enviar avaliação. Por favor, tente novamente.');
       console.error('Error submitting review:', error);
-      setError(error instanceof Error ? error.message : 'Falha ao enviar avaliação. Por favor, tente novamente.');
     } finally {
       setReviewLoading(false);
     }
@@ -251,6 +295,100 @@ export function Orders() {
     return pageNumbers;
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !selectedRestaurant) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Criar o pedido
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert([
+          {
+            user_id: user.id,
+            restaurant_id: selectedRestaurant.id,
+            status: 'pending',
+            total_amount: calculateTotal(),
+            items: cart.map(item => ({
+              product_id: item.id,
+              quantity: item.quantity,
+              price: item.price,
+              name: item.name
+            }))
+          }
+        ])
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Buscar configuração de pontos
+      const { data: pointsConfig, error: configError } = await supabase
+        .from('points_config')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (configError) throw configError;
+
+      // Buscar pontos atuais do usuário
+      const { data: currentPoints, error: currentPointsError } = await supabase
+        .from('user_points')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (currentPointsError && currentPointsError.code !== 'PGRST116') throw currentPointsError;
+
+      // Calcular novos pontos
+      const newPoints = (currentPoints?.total_points || 0) + pointsConfig.points_per_order;
+      const expirationDate = currentPoints?.points_expiration_date || 
+        new Date(Date.now() + pointsConfig.points_expiration_days * 24 * 60 * 60 * 1000).toISOString();
+
+      // Adicionar pontos ao usuário
+      const { error: pointsError } = await supabase
+        .from('user_points')
+        .upsert([
+          {
+            user_id: user.id,
+            total_points: newPoints,
+            points_expiration_date: expirationDate
+          }
+        ], {
+          onConflict: 'user_id'
+        });
+
+      if (pointsError) throw pointsError;
+
+      // Registrar no histórico de pontos
+      const { error: historyError } = await supabase
+        .from('points_history')
+        .insert([
+          {
+            user_id: user.id,
+            points: pointsConfig.points_per_order,
+            action_type: 'order',
+            description: `Pontos ganhos por realizar um pedido`
+          }
+        ]);
+
+      if (historyError) throw historyError;
+
+      // Limpar carrinho e redirecionar
+      setCart([]);
+      navigate('/orders');
+    } catch (error) {
+      console.error('Error creating order:', error);
+      setError('Erro ao criar pedido. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading && orders.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -271,7 +409,8 @@ export function Orders() {
             Voltar para o Dashboard
           </button>
           <div className="flex items-center">
-            <h1 className="text-xl font-semibold text-gray-900">FoodDelivery</h1>
+            <img src={logoUrl} alt="Logo" className="h-8 w-auto mr-2" />
+            <h1 className="text-xl font-semibold text-gray-900">AmericanaFood</h1>
           </div>
         </div>
 
@@ -297,21 +436,6 @@ export function Orders() {
                   <div className="ml-6 flex-1">
                     <div className="flex items-center justify-between">
                       <div>
-                        {/* Display star rating above order number if review exists */}
-                        {order.review && (
-                          <div className="flex mb-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`w-4 h-4 ${
-                                  star <= order.review!.rating
-                                    ? 'text-yellow-400 fill-current'
-                                    : 'text-gray-300'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        )}
                         <h3 className="text-lg font-semibold text-gray-900">
                           Pedido #{order.order_number}
                         </h3>
@@ -344,22 +468,22 @@ export function Orders() {
                       <div className="pt-2 mt-2 border-t border-gray-100">
                         <div className="flex justify-between items-center text-gray-600">
                           <span>Subtotal</span>
-                          <span>R$ {order.total_amount.toFixed(2)}</span>
+                          <span>R$ {(order.subtotal_amount || 0).toFixed(2)}</span>
                         </div>
                         {order.delivery_type === 'delivery' && (
                           <div className="flex justify-between items-center text-gray-600 mt-1">
                             <span>Taxa de Entrega</span>
                             <span>
-                              {order.restaurant.delivery_fee === 0 
+                              {!order.delivery_fee || order.delivery_fee === 0 
                                 ? 'Grátis' 
-                                : `R$ ${order.restaurant.delivery_fee.toFixed(2)}`}
+                                : `R$ ${order.delivery_fee.toFixed(2)}`}
                             </span>
                           </div>
                         )}
                         <div className="flex justify-between items-center font-medium text-gray-900 mt-2">
                           <span>Total</span>
                           <span>
-                            R$ {(order.total_amount + (order.delivery_type === 'delivery' ? order.restaurant.delivery_fee : 0)).toFixed(2)}
+                            R$ {(order.total_amount || 0).toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -376,7 +500,7 @@ export function Orders() {
                                 <Star
                                   key={star}
                                   className={`w-4 h-4 ${
-                                    star <= order.review!.rating
+                                    star <= order.review.rating
                                       ? 'text-yellow-400 fill-current'
                                       : 'text-gray-300'
                                   }`}
@@ -396,7 +520,7 @@ export function Orders() {
                         )}
                       </div>
                     ) : (
-                      selectedOrder === order.id ? (
+                      selectedOrder === order ? (
                         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                           {error && (
                             <div className="mb-4 text-sm text-red-600">
@@ -463,7 +587,7 @@ export function Orders() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleReviewSubmit(order.id)}
+                              onClick={handleReview}
                               disabled={reviewLoading || !rating}
                               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                             >
@@ -474,7 +598,7 @@ export function Orders() {
                       ) : (
                         <div className="mt-4">
                           <button
-                            onClick={() => setSelectedOrder(order.id)}
+                            onClick={() => setSelectedOrder(order)}
                             className="text-blue-600 hover:text-blue-700 text-sm font-medium focus:outline-none flex items-center"
                           >
                             <Star className="w-4 h-4 mr-1" />

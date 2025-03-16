@@ -1,0 +1,4 @@
+{
+  "schedule": "0 0 * * *",
+  "function": "update-restaurant-ratings"
+} 

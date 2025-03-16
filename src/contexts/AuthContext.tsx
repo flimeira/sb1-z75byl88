@@ -1,76 +1,95 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  error: string | null;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  error: null,
   signOut: async () => {},
 });
-
-export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
+    let isMounted = true;
 
-    // Check for existing session
-    const checkSession = async () => {
+    const initializeAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        setUser(session?.user ?? null);
+        // Verificar sessão atual
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        
+        if (isMounted) {
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
+
+        // Escutar mudanças na autenticação
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (isMounted) {
+            setUser(session?.user ?? null);
+            setLoading(false);
+          }
+        });
+
+        return () => {
+          subscription.unsubscribe();
+        };
       } catch (error) {
-        console.error('Error checking session:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
+        console.error('Error initializing auth:', error);
+        if (isMounted) {
+          setError('Erro ao inicializar autenticação');
+          setLoading(false);
+        }
       }
     };
 
-    checkSession();
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    initializeAuth();
 
     return () => {
-      subscription.unsubscribe();
+      isMounted = false;
     };
   }, []);
 
   const signOut = async () => {
-    if (!supabase) return;
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       setUser(null);
-      navigate('/signin');
     } catch (error) {
       console.error('Error signing out:', error);
+      setError('Erro ao fazer logout');
     }
   };
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-600">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, error, signOut }}>
       {children}
     </AuthContext.Provider>
   );
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
 }
