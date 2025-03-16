@@ -7,11 +7,11 @@ export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
-      external: ['date-fns'],
+      // Remove external configuration to include date-fns in the bundle
     },
   },
   optimizeDeps: {
-    include: ['date-fns'],
+    include: ['date-fns', 'date-fns/locale'],
   },
   resolve: {
     alias: {
