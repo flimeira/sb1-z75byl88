@@ -123,8 +123,8 @@ export function Profile() {
             console.log('Found existing profile:', duplicateCheck);
             // Se encontrou um perfil, atualiza em vez de criar
             const { data: updatedProfile, error: updateError } = await supabase
-              .from('profiles')
-              .update({
+          .from('profiles')
+          .update({
                 name: user.user_metadata?.name || '',
                 phone: user.user_metadata?.phone || '',
                 email: user.email,
@@ -295,26 +295,26 @@ export function Profile() {
           <div className="flex items-center mb-8">
             <Button
               variant="ghost"
-              onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/dashboard')}
               className="mr-4 hover:bg-gray-100"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
               Voltar
             </Button>
             <h1 className="text-2xl font-bold text-gray-900">Meu Perfil</h1>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 border border-red-200">
-              {error}
             </div>
-          )}
+
+            {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 border border-red-200">
+                {error}
+              </div>
+            )}
 
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-2 text-gray-600">Carregando...</p>
-            </div>
+              </div>
           ) : profile ? (
             <div className="space-y-6">
               <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
@@ -324,60 +324,60 @@ export function Profile() {
                 <CardContent className="p-6">
                   <form onSubmit={handleSaveProfile} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
+                <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Nome
-                        </label>
-                        <input
+                  </label>
+                  <input
                           type="text"
                           value={profile?.name || ''}
                           onChange={(e) =>
                             setProfile(prev => prev ? { ...prev, name: e.target.value } : null)
                           }
                           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                          required
-                        />
-                      </div>
+                    required
+                  />
+                </div>
 
-                      <div>
+                <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Email
-                        </label>
-                        <input
-                          type="email"
+                      Email
+                    </label>
+                    <input
+                      type="email"
                           value={email}
                           readOnly
-                          disabled
+                      disabled
                           className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
-                        />
-                      </div>
+                    />
+                  </div>
 
-                      <div>
+                  <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Data de Nascimento
-                        </label>
-                        <input
-                          type="date"
-                          value={profile?.birth_date || ''}
+                      Data de Nascimento
+                    </label>
+                    <input
+                      type="date"
+                      value={profile?.birth_date || ''}
                           onChange={(e) =>
                             setProfile(prev => prev ? { ...prev, birth_date: e.target.value } : null)
                           }
                           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                        />
-                      </div>
+                    />
+                  </div>
 
-                      <div>
+                  <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Telefone
-                        </label>
-                        <input
+                    </label>
+                    <input
                           type="tel"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                        />
-                      </div>
-                    </div>
+                    />
+                  </div>
+                  </div>
 
                     <div className="flex justify-end pt-4">
                       <Button 
@@ -394,7 +394,7 @@ export function Profile() {
                           'Salvar Alterações'
                         )}
                       </Button>
-                    </div>
+                  </div>
                   </form>
                 </CardContent>
               </Card>
@@ -419,11 +419,11 @@ export function Profile() {
                   {showPasswordForm ? (
                     <form onSubmit={handleChangePassword} className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
+                  <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Senha Atual
-                          </label>
-                          <input
+                    </label>
+                    <input
                             type="password"
                             value={passwordData.current_password}
                             onChange={(e) =>
@@ -434,14 +434,14 @@ export function Profile() {
                             }
                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                             required
-                          />
-                        </div>
+                    />
+                  </div>
 
-                        <div>
+                  <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Nova Senha
-                          </label>
-                          <input
+                    </label>
+                    <input
                             type="password"
                             value={passwordData.new_password}
                             onChange={(e) =>
@@ -452,14 +452,14 @@ export function Profile() {
                             }
                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                             required
-                          />
-                        </div>
+                    />
+                  </div>
 
-                        <div>
+                  <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Confirmar Nova Senha
-                          </label>
-                          <input
+                    </label>
+                    <input
                             type="password"
                             value={passwordData.confirm_password}
                             onChange={(e) =>
@@ -472,7 +472,7 @@ export function Profile() {
                             required
                           />
                         </div>
-                      </div>
+                  </div>
 
                       <div className="flex justify-end gap-4 pt-4">
                         <Button
@@ -527,9 +527,9 @@ export function Profile() {
             <div className="text-center py-8">
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <p className="text-yellow-800">Perfil não encontrado</p>
-              </div>
-            </div>
-          )}
+                </div>
+                </div>
+            )}
         </div>
       </div>
     </div>
