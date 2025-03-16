@@ -4,8 +4,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Progress } from '../components/ui/progress';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { ReferralCode } from '../components/ReferralCode';
 import { ArrowLeft } from 'lucide-react';
 
@@ -114,6 +112,19 @@ export function Points() {
     }
   }
 
+  function formatDate(dateString: string, format: 'full' | 'time' = 'full') {
+    const date = new Date(dateString);
+    const options: Intl.DateTimeFormatOptions = {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: format === 'time' ? '2-digit' : undefined,
+      minute: format === 'time' ? '2-digit' : undefined,
+    };
+
+    return new Intl.DateTimeFormat('pt-BR', options).format(date);
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto p-4">
@@ -153,7 +164,7 @@ export function Points() {
             {userPoints?.total_points || 0} pontos
           </div>
           <div className="text-sm text-gray-500 mb-4">
-            Expira em: {format(new Date(userPoints?.points_expiration_date || new Date()), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            Expira em: {formatDate(userPoints?.points_expiration_date || new Date().toISOString())}
           </div>
           <Progress 
             value={(userPoints?.total_points || 0) / 100} 
@@ -213,7 +224,7 @@ export function Points() {
                       {item.description}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {format(new Date(item.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                      {formatDate(item.created_at, 'time')}
                     </div>
                   </div>
                 </div>
