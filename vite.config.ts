@@ -5,8 +5,13 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      external: ['date-fns'],
+    },
+  },
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    include: ['date-fns'],
   },
   resolve: {
     alias: {
